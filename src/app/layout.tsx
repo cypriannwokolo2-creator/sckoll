@@ -1,20 +1,35 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Maven_Pro, Julius_Sans_One } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const maven = Maven_Pro({
+  variable: "--font-maven",
+  subsets: ["latin"],
+});
+
+const julius = Julius_Sans_One({
+  variable: "--font-julius",
+  weight: "400",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Sckoll — Email Infrastructure That Scales",
+  title: "Sckoll — Find work. Get paid. Every occupation.",
   description:
-    "Send transactional emails, marketing campaigns, and API-driven messages with 99.99% deliverability. Built for developers, loved by teams.",
-  keywords: ["email API", "transactional email", "email infrastructure", "email delivery"],
+    "The end-to-end platform for every occupation: find work and clients, send AI-drafted proposals, sign contracts, deliver the job, and get paid — all in one flow. Free to start.",
+  keywords: [
+    "find work",
+    "freelance platform",
+    "AI proposals",
+    "contracts",
+    "get paid",
+    "invoicing",
+    "all occupations",
+  ],
   openGraph: {
-    title: "Sckoll — Email Infrastructure That Scales",
-    description: "Send transactional emails and marketing campaigns with 99.99% deliverability.",
+    title: "Sckoll — Find work. Get paid. Every occupation.",
+    description:
+      "Find work, send AI proposals, get contracts signed, deliver, and get paid — one flow for every occupation.",
     url: "https://sckoll.com",
     siteName: "Sckoll",
     type: "website",
@@ -27,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} scroll-smooth`}>
-      <body className="min-h-screen bg-zinc-950 text-zinc-50 font-sans antialiased">
+    <html lang="en" className={`${maven.variable} ${julius.variable} scroll-smooth`}>
+      <body className="min-h-screen bg-[#050505] font-sans text-zinc-50 antialiased">
         {children}
       </body>
     </html>

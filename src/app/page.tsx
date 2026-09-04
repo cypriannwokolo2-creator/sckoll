@@ -1,382 +1,363 @@
-import Link from "next/link";
+import FlipWord from "@/components/FlipWord";
 
-const FEATURES = [
+const MODULES = [
   {
-    title: "Fast Delivery",
-    desc: "Sub-100ms send times via globally distributed infrastructure.",
-    icon: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+    title: "Find Work & Clients",
+    desc: "A feed of real jobs and clients near you — scored by AI so you know who to chase first.",
+    tag: "Core",
+    icon: "M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z",
   },
   {
-    title: "99.99% Uptime",
-    desc: "Enterprise-grade reliability backed by an SLA.",
-    icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
-  },
-  {
-    title: "Smart Automations",
-    desc: "Trigger emails based on user behavior. Welcome flows, re-engagement, and more.",
-    icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
-  },
-  {
-    title: "Visual Editor",
-    desc: "Drag-and-drop email builder with 50+ responsive templates.",
+    title: "AI Proposals & Quotes",
+    desc: "Turn a lead into a scoped, priced proposal in seconds — in your voice, ready to send.",
+    tag: "AI",
     icon: "M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z",
   },
   {
-    title: "Real-Time Analytics",
-    desc: "Track opens, clicks, bounces, and engagement as they happen.",
-    icon: "M18 20V10M12 20V4M6 20v-6",
+    title: "Contracts & E-Signature",
+    desc: "Lock in scope, price, and timeline with a contract your client signs in one click.",
+    tag: "Core",
+    icon: "M9 12l2 2 4-4M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   },
   {
-    title: "Webhooks & API",
-    desc: "RESTful API with SDKs for Node.js, Python, Go, Ruby, and PHP.",
-    icon: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+    title: "Deliver the Job",
+    desc: "A simple board — to do, in progress, done. You and your client always know the status.",
+    tag: "Core",
+    icon: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
   },
+  {
+    title: "Invoices & Payments",
+    desc: "Invoice on approval and get paid via bank transfer, mobile money, or card. Escrow-safe.",
+    tag: "Core",
+    icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  },
+  {
+    title: "Verified Profile",
+    desc: "A public profile with your work, reviews, and verification — instant credibility, day one.",
+    tag: "Core",
+    icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  },
+  {
+    title: "AI Outreach & Replies",
+    desc: "First messages, follow-ups, and suggested replies over WhatsApp and email — AI drafts, you send.",
+    tag: "AI",
+    icon: "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z",
+  },
+  {
+    title: "Jobs & Schedule",
+    desc: "Every gig, deadline, and delivery date in one calendar — no more notebook chaos.",
+    tag: "Core",
+    icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+  },
+  {
+    title: "AI Work Assistant",
+    desc: "Scores leads, drafts proposals and contracts, breaks signed deals into a task board — 24/7.",
+    tag: "AI",
+    icon: "M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8",
+  },
+];
+
+const INDUSTRIES = [
+  "Tech & Software",
+  "Engineering",
+  "Medicine & Health",
+  "Law",
+  "Agriculture",
+  "Finance",
+  "Education",
+  "Construction",
+  "Creative & Design",
+  "Logistics",
+  "Hospitality",
+  "Real Estate",
+  "Media",
+  "Retail",
+  "Government",
+  "Energy",
+  "Transport",
+  "Security",
+  "Sports",
+  "Science",
 ];
 
 const STEPS = [
-  { num: "01", title: "Create account", desc: "Sign up free. No credit card required." },
-  { num: "02", title: "Get your API key", desc: "Copy your key and start sending in minutes." },
-  { num: "03", title: "Send at scale", desc: "We handle deliverability, compliance, and infrastructure." },
-];
-
-const PLANS = [
   {
-    name: "Starter",
-    price: "$0",
-    period: "forever",
-    desc: "For side projects and testing.",
-    features: ["1,000 emails/month", "1 API key", "Basic templates", "Community support"],
-    cta: "Start Free",
-    popular: false,
+    num: "01",
+    title: "Find & win work",
+    desc: "Set up a verified profile, get AI-scored leads, and send outreach that actually gets replies.",
   },
   {
-    name: "Pro",
-    price: "$49",
-    period: "/month",
-    desc: "For growing businesses.",
-    features: [
-      "50,000 emails/month",
-      "Unlimited API keys",
-      "50+ templates",
-      "Automations & sequences",
-      "A/B testing",
-      "Priority support",
-    ],
-    cta: "Start Pro Trial",
-    popular: true,
+    num: "02",
+    title: "Propose & sign",
+    desc: "AI drafts the proposal and contract from the lead. Your client signs in one click.",
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    desc: "For high-volume senders.",
-    features: [
-      "Unlimited emails",
-      "Dedicated IPs",
-      "Custom templates",
-      "SSO & SAML",
-      "99.99% SLA",
-      "Dedicated account manager",
-    ],
-    cta: "Contact Sales",
-    popular: false,
+    num: "03",
+    title: "Deliver & get paid",
+    desc: "Track the job to done, invoice on approval, and collect via local payment rails.",
   },
 ];
 
 const FAQS = [
   {
-    q: "How is Sckoll different from SendGrid or Mailgun?",
-    a: "Sckoll offers faster delivery, cleaner APIs, and more transparent pricing. We don't charge extra for dedicated IPs or advanced features.",
+    q: "Who is Sckoll for?",
+    a: "Every occupation. Developers, engineers, doctors, lawyers, farmers, designers, drivers, chefs — if you do work for clients, Sckoll runs the business side of it.",
   },
   {
-    q: "Is the free tier really free?",
-    a: "Yes. 1,000 emails per month, forever. No credit card required. No trial expiration.",
+    q: "What does Sckoll actually do?",
+    a: "The full flow from lead to payment: find work, send AI-drafted proposals, get contracts signed, deliver the job, and collect payment — all in one platform instead of five disconnected tools.",
   },
   {
-    q: "What programming languages do you support?",
-    a: "Official SDKs for Node.js, Python, Go, Ruby, PHP, and Java. Any language that can make HTTP requests works via our REST API.",
+    q: "How does the AI help?",
+    a: "It scores every lead, drafts your proposals, contracts, and outreach in your voice, and turns a signed contract into a task board automatically. You review and approve every step.",
   },
   {
-    q: "Can I migrate from my current provider?",
-    a: "Yes. One-click migration tools for SendGrid, Mailgun, Postmark, and Amazon SES. Zero downtime guaranteed.",
+    q: "How do I get paid?",
+    a: "Built for emerging markets first: bank transfers, mobile money, and cards. Payment is requested the moment your client approves the work.",
   },
   {
-    q: "What compliance certifications do you have?",
-    a: "SOC 2 Type II, GDPR, and CCPA compliant. HIPAA support available on Enterprise plans.",
+    q: "What does it cost?",
+    a: "Free to start. No subscription traps — pay only for what you use, like AI credits, when you need more than your free monthly allowance.",
   },
 ];
 
 export default function Home() {
   return (
     <>
-      {/* ── Header ───────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="url(#lg)" />
-              <path d="M8 12l8 6 8-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 20l8 6 8-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity=".4" />
-              <defs>
-                <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
-                  <stop stopColor="#6366f1" />
-                  <stop offset="1" stopColor="#a855f7" />
-                </linearGradient>
-              </defs>
-            </svg>
-            Sckoll
-          </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-          </nav>
-          <div className="hidden md:flex items-center gap-3">
-            <a href="#" className="text-sm text-zinc-400 hover:text-white transition-colors">Log in</a>
-            <a href="#pricing" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
-              Start Free
+      {/* ── Nav ─────────────────────────────────────────── */}
+      <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-4">
+        <nav className="mx-auto flex h-[72px] max-w-[1400px] items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black px-6">
+          <div className="flex items-center gap-8">
+            <a href="/" className="flex items-center gap-2">
+              <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect width="32" height="32" rx="9" fill="#a3ff00" />
+                <path d="M7 12l9 6 9-6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 20l9 6 9-6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" opacity=".45" />
+              </svg>
+              <span className="font-wordmark text-base uppercase tracking-widest text-white">Sckoll</span>
             </a>
+            <div className="hidden items-center gap-2 lg:flex">
+              <a className="rounded-md px-3 py-2 text-sm font-bold text-neutral-400 transition-colors hover:text-white" href="#platform">Platform</a>
+              <a className="rounded-md px-3 py-2 text-sm font-bold text-neutral-400 transition-colors hover:text-white" href="#industries">Industries</a>
+              <a className="rounded-md px-3 py-2 text-sm font-bold text-neutral-400 transition-colors hover:text-white" href="#how">How it works</a>
+              <a className="rounded-md px-3 py-2 text-sm font-bold text-neutral-400 transition-colors hover:text-white" href="#faq">FAQ</a>
+            </div>
           </div>
-        </div>
+          <div className="hidden items-center gap-5 lg:flex">
+            <a className="text-sm text-neutral-300 underline decoration-white underline-offset-4 hover:text-white" href="#">Log In</a>
+            <a className="glow-acid-hover rounded-xl bg-acid px-4 py-2 text-sm font-semibold text-black" href="#">Sign Up Free</a>
+            <a className="rounded-xl border border-white px-4 py-2 text-sm font-medium text-white" href="#">Get a Demo</a>
+          </div>
+          <button type="button" aria-label="Open menu" className="flex h-9 w-9 items-center justify-center rounded-md text-white lg:hidden">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+        </nav>
       </header>
 
       <main>
-        {/* ── Hero ────────────────────────────────────── */}
-        <section className="pt-32 pb-20 px-6 text-center">
-          <div className="mx-auto max-w-3xl">
-            <span className="mb-6 inline-block rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-400">
-              Email infrastructure built for developers
-            </span>
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              Email that
-              <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent"> just works</span>
-            </h1>
-            <p className="text-lg text-zinc-400 mb-10 max-w-xl mx-auto leading-relaxed">
-              Send transactional emails, marketing campaigns, and API-driven messages with
-              near-perfect deliverability. One API, zero headaches.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <a href="#pricing" className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
-                Start Sending Free →
-              </a>
-              <a href="#features" className="rounded-lg border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 transition-colors">
-                See Features
-              </a>
+        {/* ── Hero ──────────────────────────────────────── */}
+        <section className="relative min-h-[88vh] overflow-hidden bg-black">
+          <div className="bg-grid absolute inset-0 opacity-60" />
+          <div className="absolute -top-40 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-acid/10 blur-[140px]" />
+          <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-8 px-6 pb-24 pt-48 md:pt-56">
+            <div className="max-w-3xl">
+              <h1 className="font-maven text-6xl font-black leading-[1.02] tracking-tight text-white lg:text-7xl">
+                <span className="block md:inline">Find work.</span>{" "}
+                <span className="block md:inline">
+                  Get <FlipWord />
+                </span>
+              </h1>
             </div>
 
-            {/* Code snippet */}
-            <div className="mx-auto max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden text-left shadow-2xl shadow-indigo-500/5">
-              <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
-                <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
-                <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
-                <span className="ml-3 text-xs text-zinc-500 font-mono">send.js</span>
+            <div className="flex flex-wrap items-center gap-6">
+              <span className="flex items-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-bold uppercase tracking-widest text-black">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+                Every Occupation
+              </span>
+              <span className="hidden items-center gap-4 text-white sm:flex">
+                <span className="h-px w-10 border-t border-white/30" />
+                <span className="font-wordmark text-3xl font-black">&amp;</span>
+                <span className="h-px w-10 border-t border-white/30" />
+              </span>
+              <span className="text-left leading-tight">
+                <span className="block font-wordmark text-2xl font-bold uppercase tracking-wide text-white">Lead to Payment</span>
+                <span className="hidden font-wordmark text-2xl tracking-wide text-neutral-400 sm:block">In One Flow</span>
+              </span>
+            </div>
+
+            <div className="mt-6 flex max-w-2xl flex-wrap items-center justify-between gap-4 border-y border-white/15 py-8 md:mt-10 md:flex-col md:items-start md:gap-6">
+              <div className="flex items-center gap-4">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-acid text-black">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M8 5v14l11-7L8 5z" /></svg>
+                </span>
+                <span className="hidden text-left leading-tight sm:block">
+                  <span className="block font-wordmark text-base font-bold tracking-wide text-white">AI-scored leads, proposals & contracts —</span>
+                  <span className="block font-wordmark text-base tracking-wide text-neutral-400">deliver the job and get paid, all in one place</span>
+                </span>
               </div>
-              <pre className="p-4 text-[13px] leading-relaxed font-mono text-zinc-400 overflow-x-auto">
-                <span className="text-purple-400">import</span>
-                {" { Sckoll } "}
-                <span className="text-purple-400">from</span>
-                {" "}
-                <span className="text-green-400">&apos;@sckoll/sdk&apos;</span>;{"\n\n"}
-                <span className="text-purple-400">const</span>
-                {" sckoll = "}
-                <span className="text-blue-400">new</span>
-                {" Sckoll("}
-                <span className="text-green-400">&apos;sk_live_...&apos;</span>
-                {");\n\n"}
-                <span className="text-purple-400">await</span>
-                {" sckoll.emails.send({\n"}
-                {"  from: "}
-                <span className="text-green-400">&apos;hello@sckoll.com&apos;</span>
-                {",\n"}
-                {"  to: "}
-                <span className="text-green-400">&apos;user@example.com&apos;</span>
-                {",\n"}
-                {"  subject: "}
-                <span className="text-green-400">&apos;Welcome aboard&apos;</span>
-                {",\n"}
-                {"  html: "}
-                <span className="text-green-400">&apos;&lt;h1&gt;Hi!&lt;/h1&gt;&apos;</span>
-                {"\n});"}
-              </pre>
+              <a href="#platform" className="flex items-center gap-2 rounded-xl bg-white/10 px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-white/20">
+                Explore the Platform
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M9 7h8v8" /></svg>
+              </a>
             </div>
           </div>
         </section>
 
-        {/* ── Features ────────────────────────────────── */}
-        <section id="features" className="py-24 px-6 border-t border-zinc-800">
-          <div className="mx-auto max-w-6xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                Everything you need
-              </h2>
-              <p className="text-zinc-400 max-w-md mx-auto">
-                A complete email platform. Send, track, and optimize — all from a single API.
+        {/* ── Stats band ────────────────────────────────── */}
+        <section className="border-b border-white/10 bg-[#050505]">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-12 text-center sm:grid-cols-4">
+            <div>
+              <p className="font-display text-3xl font-semibold tracking-tight text-acid">20</p>
+              <p className="mt-1 text-xs text-neutral-400">industries, one platform</p>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-semibold tracking-tight">1</p>
+              <p className="mt-1 text-xs text-neutral-400">flow: lead to payment</p>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-semibold tracking-tight">AI</p>
+              <p className="mt-1 text-xs text-neutral-400">in every step</p>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-semibold tracking-tight">$0</p>
+              <p className="mt-1 text-xs text-neutral-400">to start, no subscription</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Modules / marketplace ─────────────────────── */}
+        <section id="platform" className="mx-auto max-w-6xl px-6 py-20">
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="font-maven text-4xl font-black tracking-tight text-white lg:text-5xl">The whole business, in one place</h2>
+              <p className="mt-3 max-w-xl text-neutral-400">
+                Finding work, closing it, delivering, getting paid — the hard parts, handled. You just do the work you&apos;re good at.
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {FEATURES.map((f) => (
-                <div key={f.title} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 hover:border-zinc-700 transition-colors">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600/10">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d={f.icon} />
+            <a href="#" className="rounded-xl bg-white/10 px-6 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-white/20">
+              See all modules
+            </a>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {MODULES.map((m) => (
+              <div key={m.title} className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0c0c0c] p-6 transition-colors hover:border-acid/50">
+                <div>
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-acid/10">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 text-acid" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={m.icon} />
                     </svg>
                   </div>
-                  <h3 className="font-semibold mb-1">{f.title}</h3>
-                  <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
+                  <h3 className="mb-2 text-lg font-bold text-white">{m.title}</h3>
+                  <p className="text-sm leading-relaxed text-neutral-400">{m.desc}</p>
                 </div>
-              ))}
-            </div>
+                <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500">
+                  <span className={`rounded-full px-2.5 py-1 font-semibold ${m.tag === "AI" ? "bg-acid text-black" : "bg-white/10 text-neutral-300"}`}>
+                    {m.tag === "AI" ? "AI-powered" : "Built in"}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* ── How it works ────────────────────────────── */}
-        <section className="py-24 px-6 border-t border-zinc-800 bg-zinc-900/30">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Up and running in minutes
-            </h2>
-            <p className="text-zinc-400 mb-16">Three steps. That&apos;s it.</p>
-            <div className="grid sm:grid-cols-3 gap-8">
-              {STEPS.map((s) => (
-                <div key={s.num} className="flex flex-col items-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-lg font-bold">
-                    {s.num}
-                  </div>
-                  <h3 className="font-semibold mb-1">{s.title}</h3>
-                  <p className="text-sm text-zinc-400">{s.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Pricing ─────────────────────────────────── */}
-        <section id="pricing" className="py-24 px-6 border-t border-zinc-800">
-          <div className="mx-auto max-w-6xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                Simple pricing
-              </h2>
-              <p className="text-zinc-400 max-w-md mx-auto">
-                Start free. Pay only when you scale.
+        {/* ── Industries ────────────────────────────────── */}
+        <section id="industries" className="border-y border-white/10 bg-black py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mb-10 text-center">
+              <h2 className="font-maven text-4xl font-black tracking-tight text-white lg:text-5xl">Whatever you do, you run on Sckoll</h2>
+              <p className="mx-auto mt-3 max-w-xl text-neutral-400">
+                Not a tool for one trade. Every occupation runs the same flow — find work, sign, deliver, get paid.
               </p>
             </div>
-            <div className="grid sm:grid-cols-3 gap-6 items-start">
-              {PLANS.map((p) => (
-                <div
-                  key={p.name}
-                  className={`rounded-xl border p-8 ${
-                    p.popular
-                      ? "border-indigo-500 bg-zinc-900 shadow-lg shadow-indigo-500/10 relative"
-                      : "border-zinc-800 bg-zinc-900/50"
-                  }`}
-                >
-                  {p.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white">
-                      Most Popular
-                    </span>
-                  )}
-                  <h3 className="text-lg font-bold mb-1">{p.name}</h3>
-                  <p className="text-sm text-zinc-400 mb-6">{p.desc}</p>
-                  <div className="mb-6">
-                    <span className="text-4xl font-extrabold">{p.price}</span>
-                    {p.period && <span className="text-zinc-500 text-sm ml-1">{p.period}</span>}
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M13.3 4.3L6.3 11.3 2.7 7.7" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <a
-                    href="#"
-                    className={`block w-full text-center rounded-lg py-2.5 text-sm font-semibold transition-colors ${
-                      p.popular
-                        ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                        : "border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                    }`}
-                  >
-                    {p.cta}
-                  </a>
-                </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {INDUSTRIES.map((n) => (
+                <span key={n} className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-neutral-200 transition-colors hover:border-acid/60 hover:text-acid">
+                  {n}
+                </span>
               ))}
+              <span className="rounded-full bg-acid px-5 py-2.5 text-sm font-bold text-black">…and every occupation</span>
             </div>
           </div>
         </section>
 
-        {/* ── FAQ ─────────────────────────────────────── */}
-        <section id="faq" className="py-24 px-6 border-t border-zinc-800 bg-zinc-900/30">
-          <div className="mx-auto max-w-2xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                FAQ
-              </h2>
-            </div>
-            <div className="space-y-0 divide-y divide-zinc-800">
+        {/* ── How it works ──────────────────────────────── */}
+        <section id="how" className="mx-auto max-w-6xl px-6 py-20">
+          <div className="mb-12 text-center">
+            <h2 className="font-maven text-4xl font-black tracking-tight text-white lg:text-5xl">From lead to paid, in three steps</h2>
+          </div>
+          <div className="grid gap-8 sm:grid-cols-3">
+            {STEPS.map((s) => (
+              <div key={s.num} className="rounded-2xl border border-white/10 bg-[#0c0c0c] p-8">
+                <span className="font-maven text-5xl font-black text-acid">{s.num}</span>
+                <h3 className="mt-4 text-lg font-bold text-white">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-neutral-400">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── FAQ ───────────────────────────────────────── */}
+        <section id="faq" className="border-t border-white/10 bg-black py-20">
+          <div className="mx-auto max-w-2xl px-6">
+            <h2 className="mb-10 text-center font-maven text-4xl font-black tracking-tight text-white">FAQ</h2>
+            <div className="divide-y divide-white/10">
               {FAQS.map((f) => (
                 <details key={f.q} className="group py-6">
-                  <summary className="flex cursor-pointer items-center justify-between text-base font-semibold text-zinc-100 list-none [&::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
                     {f.q}
-                    <svg className="h-5 w-5 text-zinc-500 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none">
+                    <svg className="h-5 w-5 shrink-0 text-neutral-500 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none">
                       <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </summary>
-                  <p className="mt-3 text-sm text-zinc-400 leading-relaxed">{f.a}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-neutral-400">{f.a}</p>
                 </details>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── CTA ─────────────────────────────────────── */}
-        <section className="py-24 px-6">
-          <div className="mx-auto max-w-3xl rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 p-12 sm:p-16 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.15),transparent_70%)]" />
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4 relative">
-              Ready to send better email?
+        {/* ── Final CTA ─────────────────────────────────── */}
+        <section className="bg-[#050505] py-24">
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <h2 className="font-maven text-5xl font-black tracking-tight text-white lg:text-6xl">
+              Run your work on <span className="text-acid">Sckoll.</span>
             </h2>
-            <p className="text-indigo-100 text-lg mb-8 relative">
-              Start free. Upgrade when you&apos;re ready.
+            <p className="mx-auto mt-4 max-w-md text-neutral-400">
+              Free to start. Every occupation, one flow, lead to payment.
             </p>
-            <a
-              href="#pricing"
-              className="inline-block rounded-lg bg-white px-6 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors relative"
-            >
-              Get Started Free →
-            </a>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <a href="#" className="glow-acid glow-acid-hover rounded-xl bg-acid px-8 py-3.5 text-sm font-bold uppercase tracking-widest text-black">
+                Sign Up Free
+              </a>
+              <a href="#" className="rounded-xl border border-white px-8 py-3.5 text-sm font-bold uppercase tracking-widest text-white">
+                Get a Demo
+              </a>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* ── Footer ───────────────────────────────────── */}
-      <footer className="border-t border-zinc-800 py-12 px-6">
-        <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="url(#lg2)" />
-              <path d="M8 12l8 6 8-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 20l8 6 8-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity=".4" />
-              <defs>
-                <linearGradient id="lg2" x1="0" y1="0" x2="32" y2="32">
-                  <stop stopColor="#6366f1" />
-                  <stop offset="1" stopColor="#a855f7" />
-                </linearGradient>
-              </defs>
+      {/* ── Footer ──────────────────────────────────────── */}
+      <footer className="border-t border-white/10 py-12">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect width="32" height="32" rx="9" fill="#a3ff00" />
+              <path d="M7 12l9 6 9-6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M7 20l9 6 9-6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" opacity=".45" />
             </svg>
-            Sckoll
+            <span className="font-wordmark text-sm uppercase tracking-widest text-white">Sckoll</span>
           </div>
-          <div className="flex items-center gap-6 text-xs text-zinc-500">
-            <a href="#" className="hover:text-zinc-300 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-zinc-300 transition-colors">Terms</a>
-            <a href="#" className="hover:text-zinc-300 transition-colors">Status</a>
-            <a href="#" className="hover:text-zinc-300 transition-colors">Docs</a>
+          <div className="flex items-center gap-6 text-xs text-neutral-500">
+            <a href="#" className="transition-colors hover:text-white">Privacy</a>
+            <a href="#" className="transition-colors hover:text-white">Terms</a>
+            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </div>
-          <p className="text-xs text-zinc-600">© 2026 Sckoll, Inc.</p>
+          <p className="text-xs text-neutral-600">© 2026 Sckoll</p>
         </div>
       </footer>
     </>
