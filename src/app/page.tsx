@@ -8,22 +8,22 @@ const NAV_MENUS = [
   {
     label: "For talent",
     columns: [
-      { heading: "Find work", items: ["Browse opportunities", "Recommended for you", "Saved searches"] },
-      { heading: "Win more work", items: ["Build your profile", "AI proposal assistant", "Track your pipeline"] },
+      { heading: "Find work", items: [{ label: "Browse opportunities", href: "/find-work" }, { label: "Recommended for you", href: "/recommended" }, { label: "Saved searches", href: "/saved-searches" }] },
+      { heading: "Win more work", items: [{ label: "Build your profile", href: "/profile" }, { label: "AI proposal assistant", href: "/proposal-assistant" }, { label: "Track your pipeline", href: "/pipeline" }] },
     ],
   },
   {
     label: "For teams",
     columns: [
-      { heading: "Find people", items: ["Search talent", "Post a project", "Explore agencies"] },
-      { heading: "Work better", items: ["Shortlist together", "Milestones & contracts", "Team workspace"] },
+      { heading: "Find people", items: [{ label: "Search talent", href: "/talent-search" }, { label: "Post a project", href: "/post-project" }, { label: "Explore agencies", href: "/agencies" }] },
+      { heading: "Work better", items: [{ label: "Shortlist together", href: "/team-workspace" }, { label: "Milestones & contracts", href: "/contracts" }, { label: "Team workspace", href: "/team-workspace" }] },
     ],
   },
   {
     label: "Why Sckoll",
     columns: [
-      { heading: "The platform", items: ["How it works", "Matching engine", "Trust & safety"] },
-      { heading: "Learn", items: ["Success stories", "Resources", "Pricing"] },
+      { heading: "The platform", items: [{ label: "How it works", href: "/how-it-works" }, { label: "Matching engine", href: "/matching-engine" }, { label: "Trust & safety", href: "/trust" }] },
+      { heading: "Learn", items: [{ label: "Success stories", href: "/success-stories" }, { label: "Resources", href: "/resources" }, { label: "Pricing", href: "/pricing" }] },
     ],
   },
 ];
@@ -46,8 +46,8 @@ const OPPORTUNITIES = [
 ];
 
 const AUDIENCE_PATHS = [
-  { eyebrow: "For talent", title: "Find work that fits your actual strengths.", description: "Skip endless scrolling and resume black holes. Sckoll surfaces relevant work, helps you make a sharper pitch, and keeps every opportunity moving.", cta: "Find your next opportunity", href: "#signals", accent: "dark" },
-  { eyebrow: "For teams", title: "Find reliable people without becoming a recruiter.", description: "Describe what you need, discover high-intent talent, and move from shortlist to signed contract in one focused workspace.", cta: "Find the right talent", href: "#talent", accent: "acid" },
+  { eyebrow: "For talent", title: "Find work that fits your actual strengths.", description: "Skip endless scrolling and resume black holes. Sckoll surfaces relevant work, helps you make a sharper pitch, and keeps every opportunity moving.", cta: "Find your next opportunity", href: "/find-work", accent: "dark" },
+  { eyebrow: "For teams", title: "Find reliable people without becoming a recruiter.", description: "Describe what you need, discover high-intent talent, and move from shortlist to signed contract in one focused workspace.", cta: "Find the right talent", href: "/find-talent", accent: "acid" },
 ];
 
 const CATEGORIES = [
@@ -146,26 +146,26 @@ export default function Home() {
                     {menu.columns.map((column) => (
                       <div key={column.heading} className="sckoll-dropdown-column">
                         <p className="sckoll-dropdown-heading">{column.heading}</p>
-                        {column.items.map((item) => <a key={item} href="#engine" className="sckoll-dropdown-link" onClick={() => setOpenMenu(null)}>{item}<ArrowUpRight /></a>)}
+                        {column.items.map((item) => <Link key={item.href} href={item.href} className="sckoll-dropdown-link" onClick={() => setOpenMenu(null)}>{item.label}<ArrowUpRight /></Link>)}
                       </div>
                     ))}
                     <div className="sckoll-dropdown-callout">
                       <span className="sckoll-mini-dot" />
                       <p>One workspace for work that moves.</p>
-                      <a href="#start">Get started <ArrowUpRight /></a>
+                      <Link href="/sign-up">Get started <ArrowUpRight /></Link>
                     </div>
                   </div>
                 )}
               </div>
             ))}
-            <a href="#categories" className="sckoll-nav-button">Categories</a>
-            <a href="#pricing" className="sckoll-nav-button">Pricing</a>
+            <Link href="/categories" className="sckoll-nav-button">Categories</Link>
+            <Link href="/pricing" className="sckoll-nav-button">Pricing</Link>
           </div>
 
           <div className="sckoll-nav-actions">
-            <Link href="#start" className="sckoll-login">Log in</Link>
-            <Link href="#start" className="sckoll-button sckoll-button-acid sckoll-button-small">Sign up free</Link>
-            <Link href="#talent" className="sckoll-button sckoll-button-outline sckoll-button-small sckoll-hire-button">Hire talent</Link>
+            <Link href="/sign-in" className="sckoll-login">Log in</Link>
+            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">Sign up free</Link>
+            <Link href="/find-talent" className="sckoll-button sckoll-button-outline sckoll-button-small sckoll-hire-button">Hire talent</Link>
           </div>
 
           <button type="button" className="sckoll-mobile-trigger" aria-label={mobileMenu ? "Close menu" : "Open menu"} aria-expanded={mobileMenu} onClick={() => setMobileMenu(!mobileMenu)}>
@@ -174,10 +174,10 @@ export default function Home() {
         </nav>
         {mobileMenu && (
           <div className="sckoll-mobile-menu">
-            {NAV_MENUS.map((menu) => <details key={menu.label} className="sckoll-mobile-group"><summary>{menu.label}<span>+</span></summary><div>{menu.columns.flatMap((column) => column.items).map((item) => <a key={item} href="#engine" onClick={() => setMobileMenu(false)}>{item}</a>)}</div></details>)}
-            <a href="#categories" onClick={() => setMobileMenu(false)}>Categories</a>
-            <a href="#pricing" onClick={() => setMobileMenu(false)}>Pricing</a>
-            <div className="sckoll-mobile-actions"><Link href="#start" className="sckoll-button sckoll-button-acid">Sign up free</Link><Link href="#talent" className="sckoll-button sckoll-button-outline">Hire talent</Link></div>
+            {NAV_MENUS.map((menu) => <details key={menu.label} className="sckoll-mobile-group"><summary>{menu.label}<span>+</span></summary><div>{menu.columns.flatMap((column) => column.items).map((item) => <Link key={item.href} href={item.href} onClick={() => setMobileMenu(false)}>{item.label}</Link>)}</div></details>)}
+            <Link href="/categories" onClick={() => setMobileMenu(false)}>Categories</Link>
+            <Link href="/pricing" onClick={() => setMobileMenu(false)}>Pricing</Link>
+            <div className="sckoll-mobile-actions"><Link href="/sign-up" className="sckoll-button sckoll-button-acid">Sign up free</Link><Link href="/find-talent" className="sckoll-button sckoll-button-outline">Hire talent</Link></div>
           </div>
         )}
       </header>
@@ -197,12 +197,12 @@ export default function Home() {
               <div className="sckoll-search-tabs" role="tablist" aria-label="Marketplace search mode">
                 {SEARCH_TABS.map((tab) => <button key={tab} type="button" role="tab" aria-selected={searchMode === tab} className={searchMode === tab ? "sckoll-search-tab-active" : ""} onClick={() => setSearchMode(tab)}>{tab}</button>)}
               </div>
-              <form action="#signals" method="get" className="sckoll-search-form">
+              <form action={isTalentSearch ? "/find-work" : "/find-talent"} method="get" className="sckoll-search-form">
                 <label htmlFor="marketplace-search" className="sr-only">{isTalentSearch ? "Search jobs and projects" : "Search for talent"}</label>
                 <div className="sckoll-search-input"><SearchIcon /><input id="marketplace-search" name="q" placeholder={isTalentSearch ? "Search jobs, projects, or skills" : "Search by role, skill, or talent"} /></div>
                 <button type="submit" className="sckoll-button sckoll-button-acid">Search <ArrowUpRight /></button>
               </form>
-              <div className="sckoll-search-footer"><span>{isTalentSearch ? "Popular searches" : "Popular talent"}</span><div>{(isTalentSearch ? CATEGORIES.slice(0, 4).map((category) => category.name) : ["Product designers", "React developers", "Marketing leads", "Virtual assistants"]).map((item) => <a key={item} href="#categories">{item}</a>)}</div></div>
+              <div className="sckoll-search-footer"><span>{isTalentSearch ? "Popular searches" : "Popular talent"}</span><div>{(isTalentSearch ? CATEGORIES.slice(0, 4).map((category) => ({ label: category.name, href: `/categories/${category.name.toLowerCase().replaceAll(" & ", "-").replaceAll(" ", "-")}` })) : [{ label: "Product designers", href: "/find-talent" }, { label: "React developers", href: "/find-talent" }, { label: "Marketing leads", href: "/find-talent" }, { label: "Virtual assistants", href: "/find-talent" }]).map((item) => <Link key={item.label} href={item.href}>{item.label}</Link>)}</div></div>
             </div>
 
             <div className="sckoll-hero-proof"><span className="sckoll-proof-pill"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" /><path d="m9 12 2 2 4-4" /></svg>Verified work</span><span className="sckoll-proof-divider">&amp;</span><span><strong>Opportunity to outcome</strong><small>Work, one flow</small></span></div>
@@ -213,25 +213,25 @@ export default function Home() {
 
         <section className="sckoll-container sckoll-section" id="paths">
           <div className="sckoll-section-heading"><div><p className="sckoll-kicker">One marketplace, two clear paths</p><h2>Work moves differently when the right people meet.</h2></div><p>Built for the people doing the work and the people trying to get the work done.</p></div>
-          <div className="sckoll-path-grid" id="talent">{AUDIENCE_PATHS.map((path) => <article key={path.title} className={`sckoll-path-card sckoll-path-${path.accent}`}><p className="sckoll-card-eyebrow">{path.eyebrow}</p><h3>{path.title}</h3><p>{path.description}</p><a href={path.href} className="sckoll-card-link">{path.cta}<ArrowUpRight /></a></article>)}</div>
+          <div className="sckoll-path-grid" id="talent">{AUDIENCE_PATHS.map((path) => <article key={path.title} className={`sckoll-path-card sckoll-path-${path.accent}`}><p className="sckoll-card-eyebrow">{path.eyebrow}</p><h3>{path.title}</h3><p>{path.description}</p><Link href={path.href} className="sckoll-card-link">{path.cta}<ArrowUpRight /></Link></article>)}</div>
         </section>
 
-        <section className="sckoll-section sckoll-section-white" id="signals"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">The opportunity feed</p><h2>The best-fit work and talent, right now.</h2></div><a href="#start" className="sckoll-text-button">Open the full feed <ArrowUpRight /></a></div><div className="sckoll-opportunity-grid">{OPPORTUNITIES.map((opportunity) => <article key={opportunity.title} className="sckoll-opportunity-card"><div className="sckoll-opportunity-top"><div><p className="sckoll-opportunity-type">{opportunity.type}</p><h3>{opportunity.title}</h3></div><span>{opportunity.score}<small>fit</small></span></div><p className="sckoll-opportunity-company">{opportunity.company}</p><div className="sckoll-opportunity-meta"><span>{opportunity.detail}</span><a href="#start">View <ArrowUpRight /></a></div></article>)}</div></div></section>
+        <section className="sckoll-section sckoll-section-white" id="signals"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">The opportunity feed</p><h2>The best-fit work and talent, right now.</h2></div><Link href="/find-work" className="sckoll-text-button">Open the full feed <ArrowUpRight /></Link></div><div className="sckoll-opportunity-grid">{OPPORTUNITIES.map((opportunity) => <article key={opportunity.title} className="sckoll-opportunity-card"><div className="sckoll-opportunity-top"><div><p className="sckoll-opportunity-type">{opportunity.type}</p><h3>{opportunity.title}</h3></div><span>{opportunity.score}<small>fit</small></span></div><p className="sckoll-opportunity-company">{opportunity.company}</p><div className="sckoll-opportunity-meta"><span>{opportunity.detail}</span><Link href="/find-work">View <ArrowUpRight /></Link></div></article>)}</div></div></section>
 
-        <section className="sckoll-section" id="categories"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">Explore by category</p><h2>Every kind of work has a place here.</h2></div><p>Find your lane, then let the matching engine do the sorting.</p></div><div className="sckoll-category-grid">{CATEGORIES.map((category) => <a key={category.name} href="#signals" className="sckoll-category-card"><span className="sckoll-category-icon">{category.icon}</span><span><strong>{category.name}</strong><small>{category.count}</small></span><ArrowUpRight /></a>)}</div></div></section>
+        <section className="sckoll-section" id="categories"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">Explore by category</p><h2>Every kind of work has a place here.</h2></div><p>Find your lane, then let the matching engine do the sorting.</p></div><div className="sckoll-category-grid">{CATEGORIES.map((category) => <Link key={category.name} href={`/categories/${category.name.toLowerCase().replaceAll(" & ", "-").replaceAll(" ", "-")}`} className="sckoll-category-card"><span className="sckoll-category-icon">{category.icon}</span><span><strong>{category.name}</strong><small>{category.count}</small></span><ArrowUpRight /></Link>)}</div></div></section>
 
         <section className="sckoll-section sckoll-section-white" id="engine"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">How Sckoll works</p><h2>From signal to signed work—or a strong hire.</h2></div><p>One clear flow instead of five disconnected tools and a dozen open tabs.</p></div><div className="sckoll-workflow-grid">{WORKFLOW.map((step) => <article key={step.number} className="sckoll-workflow-card"><span>{step.number}</span><div className="sckoll-card-line" /><h3>{step.title}</h3><p>{step.description}</p></article>)}</div></div></section>
 
-        <section className="sckoll-section sckoll-feature-section"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">Built for momentum</p><h2>Less admin. More meaningful moves.</h2></div><p>Sckoll takes the repetitive work out of finding, pitching, hiring, and delivering—without taking control away from you.</p></div><div className="sckoll-feature-grid">{FEATURES.map((feature) => <article key={feature.number} className={`sckoll-feature-card sckoll-feature-${feature.accent}`}><span>{feature.number}</span><h3>{feature.title}</h3><p>{feature.description}</p><a href="#start">Learn more <ArrowUpRight /></a></article>)}</div></div></section>
+        <section className="sckoll-section sckoll-feature-section"><div className="sckoll-container"><div className="sckoll-section-heading"><div><p className="sckoll-kicker">Built for momentum</p><h2>Less admin. More meaningful moves.</h2></div><p>Sckoll takes the repetitive work out of finding, pitching, hiring, and delivering—without taking control away from you.</p></div><div className="sckoll-feature-grid">{FEATURES.map((feature) => <article key={feature.number} className={`sckoll-feature-card sckoll-feature-${feature.accent}`}><span>{feature.number}</span><h3>{feature.title}</h3><p>{feature.description}</p><Link href={feature.number === "01" ? "/recommended" : feature.number === "02" ? "/proposal-assistant" : "/team-workspace"}>Learn more <ArrowUpRight /></Link></article>)}</div></div></section>
 
         <section className="sckoll-section sckoll-section-white" id="trust"><div className="sckoll-container"><div className="sckoll-trust-heading"><div><p className="sckoll-kicker">The trust layer</p><h2>Move faster without stepping into the dark.</h2></div><p>For people winning work and lean teams finding talent, the messy middle is where Sckoll does the heavy lifting.</p></div><div className="sckoll-trust-grid">{TRUST_POINTS.map((point, index) => <div key={point} className="sckoll-trust-card"><span>0{index + 1}</span><div className="sckoll-check">✓</div><p>{point}</p></div>)}</div></div></section>
 
         <section className="sckoll-quote-section"><div className="sckoll-container sckoll-quote-inner"><span className="sckoll-quote-mark">“</span><blockquote>Good work should find the people ready to do it.</blockquote><p>That&apos;s the premise behind Sckoll.</p></div></section>
 
-        <section className="sckoll-pricing" id="pricing"><div className="sckoll-container sckoll-pricing-inner"><p className="sckoll-kicker">Simple by design</p><h2>Start with the work.<br /><span>Stay for the momentum.</span></h2><p>Win your next contract, bypass the resume black hole, or source reliable talent without adding another recruiter.</p><div><Link href="#start" className="sckoll-button sckoll-button-dark">Sign up free <ArrowUpRight /></Link><Link href="#talent" className="sckoll-button sckoll-button-light">Talk to the team <ArrowUpRight /></Link></div></div></section>
+        <section className="sckoll-pricing" id="pricing"><div className="sckoll-container sckoll-pricing-inner"><p className="sckoll-kicker">Simple by design</p><h2>Start with the work.<br /><span>Stay for the momentum.</span></h2><p>Win your next contract, bypass the resume black hole, or source reliable talent without adding another recruiter.</p><div><Link href="/sign-up" className="sckoll-button sckoll-button-dark">Sign up free <ArrowUpRight /></Link><Link href="/contact" className="sckoll-button sckoll-button-light">Talk to the team <ArrowUpRight /></Link></div></div></section>
       </main>
 
-      <footer className="sckoll-footer"><div className="sckoll-container"><div className="sckoll-footer-grid"><div className="sckoll-footer-brand"><div className="sckoll-brand"><Mark small /><span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span></div><p>Autonomous opportunity intelligence for every occupation.</p><span className="sckoll-footer-status"><span />Radar online · 24/7</span></div><div><p className="sckoll-footer-heading">Product</p><a href="#engine">How it works</a><a href="#signals">Opportunity feed</a><a href="#trust">Trust layer</a><a href="#pricing">Pricing</a></div><div><p className="sckoll-footer-heading">For</p><a href="#signals">Freelancers</a><a href="#signals">Job seekers</a><a href="#talent">Founders &amp; agencies</a><a href="#talent">Small teams</a></div><div><p className="sckoll-footer-heading">Explore</p><a href="#categories">Categories</a><a href="#start">Search work</a><a href="#talent">Search talent</a><a href="#start">Get started</a></div></div><div className="sckoll-footer-lockup"><Mark small /><span>sckoll</span></div><div className="sckoll-footer-bottom"><span>Copyright © 2026 Sckoll. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#start">Contact</a></div></div></div></footer>
+      <footer className="sckoll-footer"><div className="sckoll-container"><div className="sckoll-footer-grid"><div className="sckoll-footer-brand"><div className="sckoll-brand"><Mark small /><span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span></div><p>Autonomous opportunity intelligence for every occupation.</p><span className="sckoll-footer-status"><span />Radar online · 24/7</span></div><div><p className="sckoll-footer-heading">Product</p><Link href="/how-it-works">How it works</Link><Link href="/find-work">Opportunity feed</Link><Link href="/trust">Trust layer</Link><Link href="/pricing">Pricing</Link></div><div><p className="sckoll-footer-heading">For</p><Link href="/find-work">Freelancers</Link><Link href="/find-work">Job seekers</Link><Link href="/find-talent">Founders &amp; agencies</Link><Link href="/find-talent">Small teams</Link></div><div><p className="sckoll-footer-heading">Explore</p><Link href="/categories/development-it">Categories</Link><Link href="/find-work">Search work</Link><Link href="/find-talent">Search talent</Link><Link href="/sign-up">Get started</Link></div></div><div className="sckoll-footer-lockup"><Mark small /><span>sckoll</span></div><div className="sckoll-footer-bottom"><span>Copyright © 2026 Sckoll. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></div></div></div></footer>
     </div>
   );
 }
