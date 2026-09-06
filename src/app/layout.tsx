@@ -14,22 +14,22 @@ const julius = Julius_Sans_One({
 });
 
 export const metadata: Metadata = {
-  title: "Sckoll — Find work. Get paid. Every occupation.",
+  title: "Sckoll — Find the right work. Find the right people.",
   description:
-    "The end-to-end platform for every occupation: find work and clients, send AI-drafted proposals, sign contracts, deliver the job, and get paid — all in one flow. Free to start.",
+    "Sckoll helps freelancers, job seekers, founders, agencies, and lean teams find relevant work or reliable talent without endless scrolling, form-filling, or recruiter overhead.",
   keywords: [
-    "find work",
     "freelance platform",
+    "job search automation",
+    "talent sourcing",
     "AI proposals",
-    "contracts",
+    "personalized outreach",
+    "candidate matching",
     "get paid",
-    "invoicing",
-    "all occupations",
   ],
   openGraph: {
-    title: "Sckoll — Find work. Get paid. Every occupation.",
+    title: "Sckoll — Find the right work. Find the right people.",
     description:
-      "Find work, send AI proposals, get contracts signed, deliver, and get paid — one flow for every occupation.",
+      "Find relevant opportunities, send better pitches, or source reliable talent without the manual grind.",
     url: "https://sckoll.com",
     siteName: "Sckoll",
     type: "website",

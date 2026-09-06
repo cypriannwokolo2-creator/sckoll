@@ -3,16 +3,14 @@
 import { useEffect, useState } from "react";
 
 const WORDS = [
-  "Doctors.",
-  "Tutors.",
-  "Tailors.",
-  "Barbers.",
-  "Chefs.",
-  "Mechanics.",
-  "Everyone.",
+  "matched.",
+  "noticed.",
+  "shortlisted.",
+  "hired.",
+  "paid.",
 ];
 
-const LONGEST = "Photographers.";
+const LONGEST = "shortlisted.";
 
 export default function FlipWord() {
   const [index, setIndex] = useState(0);
