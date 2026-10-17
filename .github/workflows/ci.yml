@@ -119,6 +119,9 @@ jobs:
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8110
       E2E_API_URL: http://127.0.0.1:8110
       E2E_PORT: "3456"
+      # Credentialed apply spec runs here (ephemeral DB, never shared data).
+      E2E_EMAIL: e2e-talent@ci.local
+      E2E_PASSWORD: e2e-talent-password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -148,7 +151,10 @@ jobs:
           curl -sf -X POST http://127.0.0.1:8110/v1/auth/signup \
             -H 'content-type: application/json' \
             -d '{"email":"seed@ci.local","name":"Seed Client","password":"seed-password-123","role":"client"}'
-          node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();const r=await c.query(\"update users set email_verified=true where email='seed@ci.local'\");await c.end();console.log('verified',r.rowCount);})"
+          curl -sf -X POST http://127.0.0.1:8110/v1/auth/signup \
+            -H 'content-type: application/json' \
+            -d '{"email":"e2e-talent@ci.local","name":"E2E Talent","password":"e2e-talent-password","role":"talent"}'
+          node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();const r=await c.query(\"update users set email_verified=true where email in ('seed@ci.local','e2e-talent@ci.local')\");await c.end();console.log('verified',r.rowCount);})"
           SEED_CLIENT_EMAIL=seed@ci.local npm run db:seed
 
       - name: Install + build frontend

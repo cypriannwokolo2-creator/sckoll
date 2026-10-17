@@ -113,7 +113,7 @@ docker compose ps                                            # stack healthy
 - [x] React Testing Library coverage for auth forms (required/minlength wiring, server rejection, success navigation, role switch + consent)
 - [x] Integration tests for `src/lib/api.ts`: request/error mapping, plus a **47-endpoint contract test** that fails if a route is renamed on one side only
 - [x] Playwright smoke: home → find-work → opportunity detail → category page, sign-in/sign-up validation + real API rejection, robots/sitemap/status/success-stories (`e2e/*.spec.ts`, 10 passing)
-- [x] Playwright apply flow written (`e2e/apply.spec.ts`) — gated on `E2E_EMAIL`/`E2E_PASSWORD` so CI never writes to shared data
+- [x] Playwright apply flow (`e2e/apply.spec.ts`) — **runs credentialed in every CI run**: the e2e job seeds a verified talent and exports `E2E_EMAIL`/`E2E_PASSWORD`, so the spec signs in and applies against the job's ephemeral DB; locally it skips unless creds are set (never writes to shared data)
 - [ ] Playwright smoke: post project → contract → milestone → release (mocked Paystack) — needs the credentialed full-loop harness; partially covered by backend `contracts`/`payments` suites
 - [x] `.github/workflows/ci.yml`: backend (lint/typecheck/test+coverage) + frontend (typecheck/lint/test+coverage/build) + e2e (full stack: pgvector service, API boot, seed, Playwright)
 - [x] CI job installs only what it needs; npm caches via `setup-node` `cache: npm` with per-job `cache-dependency-path`
