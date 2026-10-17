@@ -147,6 +147,8 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
   const [signedIn, setSignedIn] = useState(false);
   const [showApply, setShowApply] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editMsg, setEditMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -166,6 +168,31 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
       })
       .catch(() => undefined);
   }, [opp]);
+
+  async function onSaveEdit(form: FormData) {
+    if (!opp) return;
+    setEditMsg(null);
+    setBusy(true);
+    try {
+      const minRaw = String(form.get("budgetMin") ?? "");
+      const maxRaw = String(form.get("budgetMax") ?? "");
+      const min = Number(minRaw);
+      const max = Number(maxRaw);
+      const res = await api.updateOpportunity(opp.id, {
+        title: String(form.get("title") ?? "").trim() || undefined,
+        description: String(form.get("description") ?? "").trim() || undefined,
+        ...(minRaw !== "" && Number.isFinite(min) && min >= 0 ? { budgetMin: min } : {}),
+        ...(maxRaw !== "" && Number.isFinite(max) && max >= 0 ? { budgetMax: max } : {}),
+      });
+      setOpp(res.opportunity);
+      setEditing(false);
+      setEditMsg("Posting updated.");
+    } catch (e) {
+      setEditMsg(e instanceof ApiError ? e.message : "Could not save.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onClose() {
     if (!opp || !confirm("Close this opportunity? It will stop receiving applications.")) return;
@@ -221,9 +248,14 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
                 </p>
                 <div className="sckoll-sub-actions">
                   {isOwner ? (
-                    <button type="button" className="sckoll-button sckoll-button-outline" disabled={busy} onClick={() => void onClose()}>
-                      {busy ? "Closing…" : "Close opportunity"}
-                    </button>
+                    <>
+                      <button type="button" className="sckoll-button sckoll-button-outline" onClick={() => setEditing(!editing)}>
+                        {editing ? "Cancel edit" : "Edit posting"}
+                      </button>
+                      <button type="button" className="sckoll-button sckoll-button-outline" disabled={busy} onClick={() => void onClose()}>
+                        {busy ? "Closing…" : "Close opportunity"}
+                      </button>
+                    </>
                   ) : applied ? (
                     <Link href="/pipeline" className="sckoll-button sckoll-button-acid">
                       View in your pipeline
@@ -243,6 +275,30 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
                 </div>
                 {showApply && !applied && (
                   <ApplyModal opp={opp} onClose={() => setShowApply(false)} onApplied={() => { setApplied(true); setShowApply(false); }} />
+                )}
+                {editing && isOwner && (
+                  <form className="sckoll-auth-form" style={{ marginTop: "2rem", maxWidth: "40rem" }} action={(f) => void onSaveEdit(f)}>
+                    <label>
+                      Title
+                      <input name="title" minLength={10} maxLength={160} defaultValue={opp.title} style={{ borderColor: "var(--line)", background: "var(--white)", color: "var(--ink)" }} />
+                    </label>
+                    <label>
+                      Description
+                      <textarea name="description" rows={4} minLength={50} maxLength={5000} defaultValue={opp.description} style={{ width: "100%", border: "1px solid var(--line)", borderRadius: "0.55rem", padding: "0.7rem 0.8rem", font: "inherit", fontSize: "0.85rem" }} />
+                    </label>
+                    <label>
+                      Budget min ($)
+                      <input name="budgetMin" type="number" min={0} defaultValue={opp.budgetMin ?? ""} style={{ borderColor: "var(--line)", background: "var(--white)", color: "var(--ink)" }} />
+                    </label>
+                    <label>
+                      Budget max ($)
+                      <input name="budgetMax" type="number" min={0} defaultValue={opp.budgetMax ?? ""} style={{ borderColor: "var(--line)", background: "var(--white)", color: "var(--ink)" }} />
+                    </label>
+                    <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
+                      {busy ? "Saving\u2026" : "Save changes"}
+                    </button>
+                    {editMsg && <p className="sckoll-auth-success">{editMsg}</p>}
+                  </form>
                 )}
               </>
             )}
