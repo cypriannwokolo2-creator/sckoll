@@ -14,27 +14,6 @@ const CATEGORIES = [
 ];
 
 const PAGES: Record<string, ProductPageProps> = {
-  "find-talent": {
-    eyebrow: "For founders, agencies, and lean teams",
-    title: "Find the right person without becoming a recruiter.",
-    description: "Describe the outcome you need, discover high-intent talent, and move from shortlist to signed contract in one focused hiring room.",
-    primaryLabel: "Start finding talent",
-    primaryHref: "/sign-up?role=client",
-    secondaryLabel: "See how matching works",
-    secondaryHref: "/matching-engine",
-    tone: "acid",
-    stats: [{ value: "1", label: "focused hiring room" }, { value: "3x", label: "less manual screening" }, { value: "100%", label: "human-approved decisions" }],
-    cards: [
-      { label: "SOURCE", title: "Search by outcome", description: "Start with the work you need done, not a stack of empty filters.", href: "/talent-search" },
-      { label: "COMPARE", title: "Shortlist with your team", description: "Share notes, compare proof, and keep hiring decisions in context.", href: "/team-workspace" },
-      { label: "START", title: "Move into a contract", description: "Agree on scope, milestones, timing, and payment without losing the thread.", href: "/contracts" },
-    ],
-    steps: [
-      { number: "01", title: "Describe the outcome", description: "Tell Sckoll what success looks like and which skills matter." },
-      { number: "02", title: "Review the shortlist", description: "Compare people using proof, fit, availability, and intent." },
-      { number: "03", title: "Start with confidence", description: "Set clear terms and move the right person into the work." },
-    ],
-  },
   "how-it-works": {
     eyebrow: "The Sckoll workflow",
     title: "A better path from opportunity to outcome.",
@@ -99,21 +78,6 @@ const PAGES: Record<string, ProductPageProps> = {
       { label: "SEARCH", title: "Start with the work", description: "Describe the project, role, or outcome before filtering down to a person." },
       { label: "FIT", title: "See relevant evidence", description: "Review shared skills, project proof, seniority, and intent in one view." },
       { label: "DECIDE", title: "Shortlist together", description: "Keep notes and decisions visible to the people involved in hiring." },
-    ],
-  },
-  "team-workspace": {
-    eyebrow: "For teams",
-    title: "A hiring room, not another spreadsheet.",
-    description: "Bring the brief, shortlist, notes, conversations, and next step into one place your team can actually use.",
-    primaryLabel: "Create a team workspace",
-    primaryHref: "/sign-up?role=client",
-    secondaryLabel: "Find talent",
-    secondaryHref: "/find-talent",
-    tone: "acid",
-    steps: [
-      { number: "01", title: "Share the brief", description: "Keep the outcome and constraints visible from the start." },
-      { number: "02", title: "Compare the shortlist", description: "Review proof and fit together, not in disconnected messages." },
-      { number: "03", title: "Choose the next step", description: "Invite, interview, or contract with a clear decision trail." },
     ],
   },
   "contracts": {

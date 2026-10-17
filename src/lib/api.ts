@@ -18,6 +18,7 @@ export interface Profile {
   location: string | null;
   availability: string | null;
   hourlyRate: string | null;
+  avatarUrl: string | null;
   skills: string[];
   links: Record<string, string>;
 }
@@ -146,13 +147,14 @@ export const api = {
   updateOpportunity: (id: string, input: Record<string, unknown>) =>
     request<{ ok: boolean; opportunity: Opportunity }>(`/v1/opportunities/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
   categories: () => request<{ ok: boolean; counts: Record<string, number> }>("/v1/categories"),
-  talentSearch: (filters: { q?: string; skills?: string } = {}) => {
+  talentSearch: (filters: { q?: string; skills?: string; availability?: string; rate_max?: string } = {}) => {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
     const qs = params.toString();
     return request<{
       ok: boolean;
-      results: Array<{ id: string; name: string | null; role: string; headline: string | null; bio: string | null; skills: string[]; fit: number }>;
+      results: TalentResult[];
+      total: number;
     }>(`/v1/talent/search${qs ? `?${qs}` : ""}`);
   },
   apply: (id: string, input: { pitch: string; bidAmount?: number; bidType?: string }) =>
@@ -186,7 +188,56 @@ export const api = {
   createSavedSearch: (input: { query: string; filters?: Record<string, string>; emailAlerts?: boolean }) =>
     request<{ ok: boolean; search: SavedSearch }>("/v1/saved-searches", { method: "POST", body: JSON.stringify(input) }),
   deleteSavedSearch: (id: string) => request<{ ok: boolean }>(`/v1/saved-searches/${id}`, { method: "DELETE" }),
+  publicProfile: (id: string) => request<{ ok: boolean; profile: PublicProfile }>(`/v1/profiles/${id}`),
+  shortlists: () =>
+    request<{
+      ok: boolean;
+      shortlists: Array<{
+        id: string;
+        talentId: string;
+        opportunityId: string | null;
+        notes: string;
+        talent: { id: string; name: string | null; role: string; emailVerified: boolean };
+        profile: Profile | null;
+        opportunity: { id: string; title: string; status: string } | null;
+      }>;
+    }>("/v1/shortlists"),
+  addShortlist: (input: { talentId: string; opportunityId?: string; notes?: string }) =>
+    request<{ ok: boolean; shortlist: { id: string }; deduped?: boolean }>("/v1/shortlists", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  patchShortlist: (id: string, input: { notes?: string }) =>
+    request<{ ok: boolean }>(`/v1/shortlists/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  removeShortlist: (id: string) => request<{ ok: boolean }>(`/v1/shortlists/${id}`, { method: "DELETE" }),
 };
+
+export interface TalentResult {
+  id: string;
+  name: string | null;
+  role: string;
+  headline: string | null;
+  bio: string | null;
+  skills: string[];
+  availability: string | null;
+  hourlyRate: string | null;
+  avatarUrl: string | null;
+  fit: number;
+}
+
+export interface PublicProfile {
+  id: string;
+  name: string | null;
+  role: string;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  availability: string | null;
+  hourlyRate: string | null;
+  avatarUrl: string | null;
+  skills: string[];
+  links: Record<string, string>;
+}
 
 export interface Application {
   id: string;

@@ -63,11 +63,31 @@ export const profiles = pgTable("profiles", {
   location: text("location"),
   availability: text("availability"),
   hourlyRate: text("hourly_rate"),
+  avatarUrl: text("avatar_url"),
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   links: jsonb("links").$type<Record<string, string>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Client shortlists: talent saved with team notes, optional opportunity context. */
+export const shortlists = pgTable(
+  "shortlists",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    talentId: uuid("talent_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    opportunityId: uuid("opportunity_id").references(() => opportunities.id, { onDelete: "set null" }),
+    notes: text("notes").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("shortlists_client_talent_unique").on(t.clientId, t.talentId)],
+);
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
@@ -161,6 +181,7 @@ export const savedSearches = pgTable("saved_searches", {
 export type Opportunity = typeof opportunities.$inferSelect;
 export type Application = typeof applications.$inferSelect;
 export type SavedSearch = typeof savedSearches.$inferSelect;
+export type ShortlistEntry = typeof shortlists.$inferSelect;
 
 /** GIN full-text index over title + description for marketplace search. */
 export const opportunitiesFts = index("opportunities_fts_idx").using(

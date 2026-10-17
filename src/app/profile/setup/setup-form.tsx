@@ -43,6 +43,7 @@ export default function ProfileSetupForm() {
         const value = String(form.get(key) ?? "").trim();
         if (value) links[key] = value;
       }
+      const avatar = String(form.get("avatarUrl") ?? "").trim();
       const res = await api.patchProfile({
         role,
         headline: String(form.get("headline") ?? "") || undefined,
@@ -50,6 +51,7 @@ export default function ProfileSetupForm() {
         location: String(form.get("location") ?? "") || undefined,
         availability: String(form.get("availability") ?? "") || undefined,
         hourlyRate: String(form.get("hourlyRate") ?? "") || undefined,
+        ...(avatar ? { avatarUrl: avatar } : {}),
         skills,
         ...(Object.keys(links).length > 0 ? { links } : {}),
       });
@@ -109,6 +111,10 @@ export default function ProfileSetupForm() {
             <label>
               Headline
               <input name="headline" placeholder="Senior backend engineer" defaultValue={profile?.headline ?? ""} />
+            </label>
+            <label>
+              Photo URL
+              <input name="avatarUrl" type="url" placeholder="https://…" defaultValue={profile?.avatarUrl ?? ""} />
             </label>
             <label>
               Bio

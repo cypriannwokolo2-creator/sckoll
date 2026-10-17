@@ -22,6 +22,13 @@
       "when": 1792240776163,
       "tag": "0002_luxuriant_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792241842353,
+      "tag": "0003_elite_the_anarchist",
+      "breakpoints": true
     }
   ]
 }
