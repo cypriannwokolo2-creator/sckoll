@@ -37,12 +37,12 @@ docker compose ps                                            # stack healthy
 | 6 | Notifications: event bus, inbox, digest | ✅ shipped `85792da` |
 | 7 | Contracts: milestones, messaging, reviews | ✅ shipped `6fb9e1e` |
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
-| **9** | **Growth: semantic matching, telemetry, SEO** | **🟡 committed to `feat/phase9-growth`; gates green; push/deploy pending** |
+| **9** | **Growth: semantic matching, telemetry, SEO** | ✅ shipped `afa8315` (deployed + verified 2026-10-17) |
 | 10–20 | Forward plan (below) | ⬜ not started |
 
 ---
 
-# PART A — Reconstructed history (phases 1–8 shipped; phase 9 completed on this branch)
+# PART A — Reconstructed history (phases 1–9 shipped)
 
 ## Phase 1 — Frontend defects ✅
 - [x] Copy, forms, links, metadata, contact-page fixes
@@ -86,7 +86,7 @@ docker compose ps                                            # stack healthy
 - [x] `POST /v1/webhooks/paystack` with signature verification, fail-closed when key absent
 - [x] Per-milestone fund/release, receipts, `/v1/contracts/:id/payments`
 
-## Phase 9 — Growth (committed; not deployed) 🟡
+## Phase 9 — Growth ✅
 - [x] `embeddings` + `match_events` migration `0007` (applied to dev DB)
 - [x] Local 384-dim embedder behind a provider interface (`backend/src/lib/embeddings.ts`)
 - [x] Hybrid re-rank on opportunities + talent search: 40% rules / 60% vector
@@ -99,7 +99,7 @@ docker compose ps                                            # stack healthy
 - [x] Remove dead `metadata.robots` export — robots intent moved to `layout.tsx`
 - [x] Seed a second profile (`db:seed` → demo talent, idempotent, embedded on creation)
 - [x] **Commit Phase 9 to `feat/phase9-growth` (this commit)** — gates: backend lint/types/47 tests, frontend lint/types/`next build`
-- [ ] **Push branch → merge to master → deploy → verify `/sitemap.xml` + `/robots.txt` are 200 in prod**
+- [x] **Push → merge to master → deploy → verify live** (evidence: `www.sckoll.com` `/sitemap.xml` + `/robots.txt` + `/status` + `/success-stories` all 200; sitemap = 55 URLs of which 32 dynamic; `api.sckoll.com/v1/profiles` 200; a listed opportunity and profile URL both 200)
 
 ---
 
