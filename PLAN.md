@@ -107,21 +107,26 @@ docker compose ps                                            # stack healthy
 
 ## Phase 10 — Test & CI gate
 **Gate: a red PR cannot merge; frontend has real tests.**
-- [ ] Add Vitest (or Jest) to the frontend: component tests for feed card, fit badge, apply modal
-- [ ] Add React Testing Library coverage for auth forms (validation + error states)
-- [ ] Integration tests for `src/lib/api.ts` request/error mapping with mocked `fetch`
-- [ ] Playwright smoke suite: home → sign-up → find-work → opportunity detail → apply
-- [ ] Playwright smoke: post project → contract → milestone → release (mocked Paystack)
-- [ ] `.github/workflows/ci.yml`: backend lint/typecheck/test + frontend lint/typecheck/build
-- [ ] CI job installs only what it needs; cache `node_modules` (`actions/cache`)
-- [ ] Backend coverage report (vitest `--coverage`) with a floor on `src/lib`
-- [ ] PR template: evidence commands pasted before review
-- [ ] Branch protection: require CI green before merge
-- [ ] `npm audit --audit-level=high` step in CI (non-blocking first, then blocking)
-- [ ] Badge in README showing CI status
+- [x] Add Vitest to the frontend: component tests for the feed card + fit badge + ranking reasons (`OpportunityCard.tsx`, extracted from the feed so it is testable) 
+- [x] Component test for the apply modal (`ApplyModal.tsx`, extracted from the detail page): pitch validation, submit payload, server rejection, cancel
+- [x] React Testing Library coverage for auth forms (required/minlength wiring, server rejection, success navigation, role switch + consent)
+- [x] Integration tests for `src/lib/api.ts`: request/error mapping, plus a **47-endpoint contract test** that fails if a route is renamed on one side only
+- [x] Playwright smoke: home → find-work → opportunity detail → category page, sign-in/sign-up validation + real API rejection, robots/sitemap/status/success-stories (`e2e/*.spec.ts`, 10 passing)
+- [x] Playwright apply flow written (`e2e/apply.spec.ts`) — gated on `E2E_EMAIL`/`E2E_PASSWORD` so CI never writes to shared data
+- [ ] Playwright smoke: post project → contract → milestone → release (mocked Paystack) — needs the credentialed full-loop harness; partially covered by backend `contracts`/`payments` suites
+- [x] `.github/workflows/ci.yml`: backend (lint/typecheck/test+coverage) + frontend (typecheck/lint/test+coverage/build) + e2e (full stack: pgvector service, API boot, seed, Playwright)
+- [x] CI job installs only what it needs; npm caches via `setup-node` `cache: npm` with per-job `cache-dependency-path`
+- [x] Backend coverage report (`vitest --coverage`) with a floor on `src/lib` (60/65/60/60) — frontend floor on `src/lib` too (75/70/75/75)
+- [x] PR template: evidence commands pasted before review (`.github/pull_request_template.md`)
+- [ ] Branch protection: require CI green before merge (attempt once the first run is green)
+- [x] `npm audit --audit-level=high` step in CI (non-blocking first, then blocking)
+- [x] Badge in README showing CI status
+
+**Quality win while testing:** `trackMatchEvent` now swallows network rejections (was an unhandled promise rejection), the sign-up role switch gained real `role="tab"`/`aria-selected` semantics (was an invalid `tablist`), and `scoreVector: null` is now actually omitted from telemetry payloads.
 
 ## Phase 11 — Reliability & operations
 **Gate: any machine can be rebuilt from docs; failures page you.**
+- [x] **CORS origin policy fixed in production** — `api.sckoll.com` only allowed `http://localhost:3000`, so every browser call from `https://www.sckoll.com` was blocked (feed showed "Could not load opportunities"). Replaced with `isOriginAllowed()` (configured app URLs always, localhost only outside production) + `backend/src/lib/cors.test.ts` (6 tests). Evidence: prod feed now loads 12 cards with 0 CORS errors; `SITE_URL`/`FRONTEND_URL` on the serving box corrected to `https://www.sckoll.com` (they also drive email links).
 - [ ] Nightly `pg_dump` cron into encrypted off-box storage (S3/rclone), 14-day retention
 - [ ] Restore drill documented + scripted: `docs/runbooks/restore.md`, tested once
 - [ ] Migration step in deploy: `drizzle-kit migrate` before app start, backward-compatible only

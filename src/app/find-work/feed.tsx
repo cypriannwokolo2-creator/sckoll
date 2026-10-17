@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
-import { ApiError, api, budgetLabel, fitEstimate, trackMatchEvent, type MatchScore, type Opportunity } from "@/lib/api";
+import { ApiError, api, type MatchScore, type Opportunity } from "@/lib/api";
+import OpportunityCard from "@/components/OpportunityCard";
 
 const TYPES = ["project", "role", "contract"];
 
@@ -120,42 +121,9 @@ function FeedInner({ q, type, category }: { q: string; type: string; category: s
       ) : (
         <>
           <div className="sckoll-sub-card-grid">
-            {opps.map((opp) => {
-              const fit = fitEstimate(viewerSkills, opp.skills);
-              return (
-                <article key={opp.id} className="sckoll-sub-card">
-                  <p>
-                    {opp.type.toUpperCase()} · {opp.category.replace(/-/g, " ").toUpperCase()}
-                    {fit !== null && ` · ${fit}% FIT`}
-                  </p>
-                  <h3>{opp.title}</h3>
-                  <span>
-                    {budgetLabel(opp)}
-                    {opp.remote ? " · Remote" : opp.location ? ` · ${opp.location}` : ""}
-                  </span>
-                  {opp.reasons && opp.reasons.length > 0 && (
-                    <span style={{ marginTop: "0.4rem", color: "var(--acid)", filter: "brightness(0.75)" }}>
-                      Why: {opp.reasons.join(" · ")}
-                    </span>
-                  )}
-                  <Link
-                    href={`/find-work/${opp.id}`}
-                    onClick={() =>
-                      trackMatchEvent({
-                        eventType: "click",
-                        targetType: "opportunity",
-                        targetId: opp.id,
-                        scoreRules: opp.fitRules ?? undefined,
-                        scoreVector: opp.fitVector ?? undefined,
-                        finalScore: opp.fit ?? undefined,
-                      })
-                    }
-                  >
-                    View details
-                  </Link>
-                </article>
-              );
-            })}
+            {opps.map((opp) => (
+              <OpportunityCard key={opp.id} opp={opp} viewerSkills={viewerSkills} />
+            ))}
           </div>
           {cursor && (
             <div style={{ marginTop: "2rem", textAlign: "center" }}>

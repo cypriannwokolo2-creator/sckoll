@@ -116,6 +116,8 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         <div className="sckoll-role-switch" role="tablist" aria-label="Account type">
           <button
             type="button"
+            role="tab"
+            aria-selected={role === "talent"}
             className={role === "talent" ? "active" : ""}
             onClick={() => setRole("talent")}
           >
@@ -123,6 +125,8 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={role === "client"}
             className={role === "client" ? "active" : ""}
             onClick={() => setRole("client")}
           >

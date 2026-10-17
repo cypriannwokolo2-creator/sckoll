@@ -384,9 +384,10 @@ export function trackMatchEvent(input: {
   finalScore?: number;
 }): void {
   try {
+    const { scoreVector, ...rest } = input;
     const body = JSON.stringify({
-      ...input,
-      ...(input.scoreVector == null ? {} : { scoreVector: input.scoreVector }),
+      ...rest,
+      ...(scoreVector == null ? {} : { scoreVector }),
     });
     void fetch(`${API_URL}/v1/match-events`, {
       method: "POST",
@@ -394,6 +395,8 @@ export function trackMatchEvent(input: {
       headers: { "content-type": "application/json" },
       body,
       keepalive: true,
+    }).catch(() => {
+      // telemetry never blocks UX — and never becomes an unhandled rejection
     });
   } catch {
     // telemetry never blocks UX

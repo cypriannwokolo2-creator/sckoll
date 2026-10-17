@@ -5,6 +5,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { Redis } from "ioredis";
 import { loadEnv, type Env } from "./env.js";
+import { isOriginAllowed } from "./lib/cors.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerContractRoutes } from "./routes/contracts.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
@@ -34,7 +35,7 @@ export async function buildServer(overrides?: Partial<Env>) {
     }
   });
   await app.register(cors, {
-    origin: [env.FRONTEND_URL, env.SITE_URL],
+    origin: (origin, cb) => cb(null, isOriginAllowed(origin, env)),
     credentials: true,
   });
 

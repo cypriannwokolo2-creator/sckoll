@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend · lint, types, tests, coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sckoll
+          POSTGRES_PASSWORD: sckoll
+          POSTGRES_DB: sckoll
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sckoll -d sckoll"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://sckoll:sckoll@localhost:5432/sckoll
+      AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      NODE_ENV: test
+      REDIS_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Tests + coverage (floor enforced in vitest.config.ts)
+        run: npm run test:coverage
+      - name: Dependency audit (non-blocking for now)
+        run: npm audit --audit-level=high || echo "::warning::high/critical advisories present"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage
+          retention-days: 7
+
+  frontend:
+    name: Frontend · lint, types, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx eslint .
+      - name: Tests + coverage (src/lib floor enforced in vitest.config.ts)
+        run: npm run test:coverage
+      - name: Build
+        run: npx next build
+      - name: Dependency audit (non-blocking for now)
+        run: npm audit --audit-level=high || echo "::warning::high/critical advisories present"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: coverage
+          retention-days: 7
+
+  e2e:
+    name: E2E · Playwright against a full stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sckoll
+          POSTGRES_PASSWORD: sckoll
+          POSTGRES_DB: sckoll
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sckoll -d sckoll"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://sckoll:sckoll@localhost:5432/sckoll
+      AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      NODE_ENV: development
+      REDIS_URL: ""
+      PORT: "8110"
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8110
+      E2E_API_URL: http://127.0.0.1:8110
+      E2E_PORT: "3456"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      - name: Install + build API
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npx drizzle-kit push
+
+      - name: Start API
+        working-directory: backend
+        run: |
+          node dist/index.js > /tmp/api.log 2>&1 &
+          curl --retry 30 --retry-delay 1 --retry-connrefused -sf http://127.0.0.1:8110/health
+
+      - name: Seed marketplace data
+        working-directory: backend
+        run: |
+          curl -sf -X POST http://127.0.0.1:8110/v1/auth/signup \
+            -H 'content-type: application/json' \
+            -d '{"email":"seed@ci.local","name":"Seed Client","password":"seed-password-123","role":"client"}'
+          node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();const r=await c.query(\"update users set email_verified=true where email='seed@ci.local'\");await c.end();console.log('verified',r.rowCount);})"
+          SEED_CLIENT_EMAIL=seed@ci.local npm run db:seed
+
+      - name: Install + build frontend
+        run: |
+          npm ci
+          npx next build
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
