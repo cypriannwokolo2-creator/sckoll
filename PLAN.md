@@ -38,7 +38,8 @@ docker compose ps                                            # stack healthy
 | 7 | Contracts: milestones, messaging, reviews | ✅ shipped `6fb9e1e` |
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
 | **9** | **Growth: semantic matching, telemetry, SEO** | ✅ shipped `afa8315` (deployed + verified 2026-10-17) |
-| 10–20 | Forward plan (below) | ⬜ not started |
+| **10** | **Test & CI gate** | 🟡 CI green + merge gate enforced;1 milestone open (credentialed payments e2e) |
+| 11–20 | Forward plan (below) | ⬜ not started |
 
 ---
 
@@ -118,9 +119,19 @@ docker compose ps                                            # stack healthy
 - [x] CI job installs only what it needs; npm caches via `setup-node` `cache: npm` with per-job `cache-dependency-path`
 - [x] Backend coverage report (`vitest --coverage`) with a floor on `src/lib` (60/65/60/60) — frontend floor on `src/lib` too (75/70/75/75)
 - [x] PR template: evidence commands pasted before review (`.github/pull_request_template.md`)
-- [ ] Branch protection: require CI green before merge (attempt once the first run is green)
+- [x] Branch protection: **PR required + 3 required status checks + `enforce_admins`** — verified by attempting a direct push to `master`, which GitHub rejected with `GH006: Changes must be made through a pull request /3 of 3 required status checks are expected` (owner included, no bypass)
 - [x] `npm audit --audit-level=high` step in CI (non-blocking first, then blocking)
 - [x] Badge in README showing CI status
+
+**CI evidence (run `39060705737`, all ✅):**
+- `Backend · lint, types, tests, coverage` — eslint (real config), `tsc`, 53 tests, coverage floors
+- `Frontend · lint, types, tests, build` — `tsc`, eslint, 83 tests, `next build`
+- `E2E · Playwright against a full stack` — pgvector service → API boot → seed → 10 Playwright specs
+
+Three earlier failed runs each caught a real defect: backend lint was silently resolving the
+**frontend** config (exited 2 locally — my greps had masked it), route suites assumed
+`sckoll_test*` databases that only exist on an already-initialized machine, and
+`NODE_ENV=development` on `next build` crashed prerendering (`useContext` null).
 
 **Quality win while testing:** `trackMatchEvent` now swallows network rejections (was an unhandled promise rejection), the sign-up role switch gained real `role="tab"`/`aria-selected` semantics (was an invalid `tablist`), and `scoreVector: null` is now actually omitted from telemetry payloads.
 
