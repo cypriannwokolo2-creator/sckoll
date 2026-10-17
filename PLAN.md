@@ -140,16 +140,16 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
 - [x] **CORS origin policy fixed in production** — `api.sckoll.com` only allowed `http://localhost:3000`, so every browser call from `https://www.sckoll.com` was blocked (feed showed "Could not load opportunities"). Replaced with `isOriginAllowed()` (configured app URLs always, localhost only outside production) + `backend/src/lib/cors.test.ts` (6 tests). Evidence: prod feed now loads 12 cards with 0 CORS errors; `SITE_URL`/`FRONTEND_URL` on the serving box corrected to `https://www.sckoll.com` (they also drive email links).
 - [ ] Nightly `pg_dump` cron into encrypted off-box storage (S3/rclone), 14-day retention
 - [ ] Restore drill documented + scripted: `docs/runbooks/restore.md`, tested once
-- [ ] Migration step in deploy: `drizzle-kit migrate` before app start, backward-compatible only
-- [ ] Structured JSON request logging with request id; no secrets/PII in logs
+- [x] Migration step in deploy: migrations applied **before the server starts** via the runtime migrator (`backend/src/db/migrate.ts`, `drizzle-orm/node-postgres/migrator` on the `drizzle/` journal — no dev deps in the image). Wired into `npm start` and the container `CMD`; policy: migrations stay backward-compatible with the previous app version (expand → migrate → contract), see `docs/runbooks/rollback.md`
+- [x] Structured JSON logging (`backend/src/lib/logger.ts`): serializers emit id/method/url/ip + status only (headers/bodies never serialized → no cookies, tokens, passwords), redact paths as backstop, `x-request-id` echoed on every response (inbound honoured, hostile values re-minted). 6 tests incl. a real Fastify request asserting secrets never reach the log stream
 - [ ] Sentry (or self-hosted GlitchTip) on backend + frontend, source maps uploaded
-- [ ] Health endpoints: `/healthz` (live) + `/readyz` (db/redis reachable) wired to compose healthcheck
+- [x] Health endpoints: `/healthz` (liveness, touches nothing) + `/readyz` (probes the **configured** DB URL and Redis with short-lived pools; 503 + per-dependency latency on degraded). Compose `healthcheck` on the api service hits `/readyz`; 4 tests cover live/ready/503/correlation-id
 - [ ] Uptime monitor on `https://www.sckoll.com` + `https://api.sckoll.com` (5-min interval)
 - [ ] Alert channel: email/Telegram on error-rate spike or failed deploy
-- [ ] `/status` page fed by real checks instead of static copy
+- [x] `/status` page fed by real checks: adds a "Core services (db / cache)" row reading `/readyz` (latency per dependency) alongside the existing API/auth probes
 - [ ] Grafana/`prom-client` request metrics: latency p95, error rate, webhook failures
-- [ ] Runbook: restart stack, rotate secrets, replay a failed Paystack webhook
-- [ ] Document rollback: previous Vercel deployment + previous API image tag
+- [x] Runbooks: `docs/runbooks/restart.md`, `rotate-secrets.md`, `paystack-webhook-replay.md` (replay is safe: webhook is idempotent + signature-verified + server-side re-verify)
+- [x] Rollback documented: `docs/runbooks/rollback.md` — frontend via Vercel "Promote to Production" / `git revert`, API via checkout of last-good SHA + `docker compose up -d --build api`; app rolls back, schema never does
 - [ ] Staging environment (compose project + Vercel preview) that never touches prod data
 
 ## Phase 12 — Admin, moderation & disputes

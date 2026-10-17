@@ -4,8 +4,10 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { Redis } from "ioredis";
+import { Pool } from "pg";
 import { loadEnv, type Env } from "./env.js";
 import { isOriginAllowed } from "./lib/cors.js";
+import { genReqId, loggerOptions } from "./lib/logger.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerContractRoutes } from "./routes/contracts.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
@@ -18,7 +20,16 @@ import { registerProfileRoutes } from "./routes/profiles.js";
 
 export async function buildServer(overrides?: Partial<Env>) {
   const env = { ...loadEnv(), ...overrides };
-  const app = Fastify({ logger: env.NODE_ENV !== "test", trustProxy: true });
+  const app = Fastify({
+    logger: env.NODE_ENV !== "test" ? loggerOptions(env.LOG_LEVEL) : false,
+    genReqId,
+    trustProxy: true,
+  });
+
+  // Correlation id on every response: what the client saw ↔ what we logged.
+  app.addHook("onRequest", async (req, reply) => {
+    reply.header("x-request-id", String(req.id));
+  });
 
   await app.register(helmet, {
     // API serves JSON to the Vercel frontend; no embedded resources to protect.
@@ -57,6 +68,51 @@ export async function buildServer(overrides?: Partial<Env>) {
   });
 
   app.get("/health", async () => ({ ok: true, service: "sckoll-api", version: "0.1.0" }));
+  // Liveness: process is up; touches no dependency (a bad DB must not "kill" the process).
+  app.get("/healthz", async () => ({ ok: true, status: "live" }));
+  // Readiness: dependencies are reachable. 503 when degraded — compose healthchecks
+  // and the /status page both read this.
+  app.get("/readyz", async (_req, reply) => {
+    const checks: Record<string, { ok: boolean; latencyMs: number; error?: string }> = {};
+
+    // Probe the *configured* URL with a dedicated short-lived pool: readiness must
+    // reflect what this process would actually connect to, not a cached pool.
+    const t0 = performance.now();
+    const probe = new Pool({ connectionString: env.DATABASE_URL, max: 1, connectionTimeoutMillis: 2000 });
+    try {
+      await probe.query("SELECT 1");
+      checks.database = { ok: true, latencyMs: Math.round(performance.now() - t0) };
+    } catch {
+      checks.database = { ok: false, latencyMs: Math.round(performance.now() - t0), error: "unreachable" };
+      app.log.error({ db: "unreachable" }, "readyz: database unreachable");
+    } finally {
+      await probe.end();
+    }
+
+    if (env.REDIS_URL) {
+      const t1 = performance.now();
+      let client = redis;
+      if (!client) {
+        // Limiter connected without redis at boot; probe on demand so readiness
+        // still reports the cache accurately instead of silently degrading.
+        client = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1, reconnectOnError: () => false, retryStrategy: () => null });
+      }
+      try {
+        if (client.status === "wait" || client.status === "close") await client.connect();
+        await client.ping();
+        checks.redis = { ok: true, latencyMs: Math.round(performance.now() - t1) };
+      } catch (err) {
+        checks.redis = { ok: false, latencyMs: Math.round(performance.now() - t1), error: "unreachable" };
+        app.log.warn({ err }, "readyz: redis unreachable");
+      } finally {
+        if (client !== redis) client.disconnect();
+      }
+    }
+
+    const ok = Object.values(checks).every((c) => c.ok);
+    reply.code(ok ? 200 : 503);
+    return { ok, status: ok ? "ready" : "degraded", checks };
+  });
 
   await registerAuthRoutes(app, env);
   await registerApplicationRoutes(app, env);

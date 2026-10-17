@@ -15,5 +15,8 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --no-audit --no-fund
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/drizzle ./drizzle
 EXPOSE 8110
-CMD ["node", "dist/index.js"]
+# Migrations run before the server accepts traffic; they must stay
+# backward-compatible with the previous app version (see docs/runbooks/rollback.md).
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
