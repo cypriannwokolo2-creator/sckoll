@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
@@ -9,7 +10,7 @@ import { loadEnv } from "../env.js";
 import { testDatabaseUrl } from "../test-setup.js";
 
 const TEST_ENV: Partial<Env> = {
-  DATABASE_URL: testDatabaseUrl(),
+  DATABASE_URL: testDatabaseUrl("sckoll_test_opps"),
   AUTH_SECRET: "test-secret-0123456789abcdef-test-secret",
   NODE_ENV: "test",
   GOOGLE_CLIENT_ID: "",
@@ -56,8 +57,13 @@ describe("opportunity routes", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
+    execSync("npx drizzle-kit push", {
+      cwd: new URL("../../", import.meta.url).pathname,
+      env: { ...process.env, DATABASE_URL: testDatabaseUrl("sckoll_test_opps") },
+      stdio: "pipe",
+    });
     ({ app } = await buildServer({ ...loadEnv(), ...TEST_ENV }));
-  });
+  }, 120000);
 
   afterAll(async () => {
     await app.close();

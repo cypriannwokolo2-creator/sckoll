@@ -155,4 +155,57 @@ export const api = {
       results: Array<{ id: string; name: string | null; role: string; headline: string | null; bio: string | null; skills: string[]; fit: number }>;
     }>(`/v1/talent/search${qs ? `?${qs}` : ""}`);
   },
+  apply: (id: string, input: { pitch: string; bidAmount?: number; bidType?: string }) =>
+    request<{ ok: boolean; application: Application }>(`/v1/opportunities/${id}/apply`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  withdrawApplication: (id: string) => request<{ ok: boolean }>(`/v1/applications/${id}`, { method: "DELETE" }),
+  pipeline: () =>
+    request<{
+      ok: boolean;
+      pipeline: Record<string, Array<{ application: Application; opportunity: Opportunity }>>;
+    }>("/v1/pipeline/me"),
+  oppApplications: (id: string) =>
+    request<{
+      ok: boolean;
+      applications: Array<
+        Application & {
+          talent: { id: string; name: string | null; emailVerified: boolean };
+          profile: Profile | null;
+        }
+      >;
+    }>(`/v1/opportunities/${id}/applications`),
+  setApplicationStatus: (id: string, status: string) =>
+    request<{ ok: boolean; application: Application }>(`/v1/applications/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  savedSearches: () =>
+    request<{ ok: boolean; searches: SavedSearch[] }>("/v1/saved-searches"),
+  createSavedSearch: (input: { query: string; filters?: Record<string, string>; emailAlerts?: boolean }) =>
+    request<{ ok: boolean; search: SavedSearch }>("/v1/saved-searches", { method: "POST", body: JSON.stringify(input) }),
+  deleteSavedSearch: (id: string) => request<{ ok: boolean }>(`/v1/saved-searches/${id}`, { method: "DELETE" }),
 };
+
+export interface Application {
+  id: string;
+  opportunityId: string;
+  talentId: string;
+  pitch: string;
+  bidAmount: number | null;
+  bidType: string;
+  status: string;
+  fitScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedSearch {
+  id: string;
+  userId: string;
+  query: string;
+  filters: Record<string, string>;
+  emailAlerts: boolean;
+  createdAt: string;
+}

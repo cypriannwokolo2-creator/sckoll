@@ -4,7 +4,139 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
-import { ApiError, api, budgetLabel, type Opportunity } from "@/lib/api";
+import { ApiError, api, budgetLabel, type Application, type Opportunity, type Profile } from "@/lib/api";
+
+type InboxRow = Application & {
+  talent: { id: string; name: string | null; emailVerified: boolean };
+  profile: Profile | null;
+};
+
+function ApplyModal({ opp, onClose, onApplied }: { opp: Opportunity; onClose: () => void; onApplied: () => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(form: FormData) {
+    setError(null);
+    setBusy(true);
+    try {
+      const bid = Number(form.get("bidAmount"));
+      await api.apply(opp.id, {
+        pitch: String(form.get("pitch") ?? ""),
+        bidType: String(form.get("bidType") ?? "fixed"),
+        ...(Number.isFinite(bid) && bid > 0 ? { bidAmount: bid } : {}),
+      });
+      onApplied();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not submit your application.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="sckoll-auth-card" style={{ marginTop: "2rem" }}>
+      <div className="sckoll-auth-card-heading">
+        <p className="sckoll-kicker">Your pitch</p>
+        <h2>Apply with context</h2>
+        <p>Minimum 50 characters. Reference the brief, your proof, and your plan — not a generic paragraph.</p>
+      </div>
+      {error && <p className="sckoll-auth-error">{error}</p>}
+      <form className="sckoll-auth-form" action={(f) => void onSubmit(f)}>
+        <label>
+          Pitch
+          <textarea required name="pitch" rows={6} minLength={50} maxLength={3000} placeholder="Why you fit, what you would do first, and proof you have done it before…" />
+        </label>
+        <label>
+          Bid type
+          <select name="bidType" defaultValue={opp.rateType === "hourly" ? "hourly" : "fixed"}>
+            <option value="fixed">Fixed price ($)</option>
+            <option value="hourly">Hourly ($/hr)</option>
+          </select>
+        </label>
+        <label>
+          Your bid (optional)
+          <input name="bidAmount" type="number" min={0} placeholder="4000" />
+        </label>
+        <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
+          {busy ? "Sending…" : "Send application"} <span>↗</span>
+        </button>
+        <button type="button" className="sckoll-social-button" onClick={onClose}>
+          Cancel
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function OwnerInbox({ oppId }: { oppId: string }) {
+  const [rows, setRows] = useState<InboxRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .oppApplications(oppId)
+      .then((res) => setRows(res.applications))
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [oppId]);
+
+  async function setStatus(id: string, status: string) {
+    setBusy(id);
+    try {
+      const res = await api.setApplicationStatus(id, status);
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: res.application.status } : r)));
+    } catch {
+      // keep rows; error surfaces via button state reset
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (loading) return <div className="sckoll-skeleton" style={{ height: "6rem", marginTop: "2rem" }} />;
+  if (rows.length === 0) {
+    return (
+      <div className="sckoll-empty" style={{ marginTop: "2rem" }}>
+        <h3>No applications yet.</h3>
+        <p>Share this opportunity or wait for the radar to surface it to matching talent.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="sckoll-sub-card-grid" style={{ marginTop: "2rem" }}>
+      {rows.map((row) => (
+        <article key={row.id} className="sckoll-sub-card">
+          <p>
+            {row.status.toUpperCase()}
+            {row.fitScore != null ? ` · ${row.fitScore}% FIT` : ""}
+          </p>
+          <h3>{row.talent.name ?? "Talent"}</h3>
+          <span style={{ whiteSpace: "pre-wrap" }}>{row.pitch.slice(0, 220)}{row.pitch.length > 220 ? "…" : ""}</span>
+          {row.bidAmount != null && (
+            <span style={{ marginTop: "0.5rem" }}>
+              Bid: ${row.bidAmount.toLocaleString()}
+              {row.bidType === "hourly" ? "/hr" : ""}
+            </span>
+          )}
+          {row.profile?.skills?.length ? <span>Skills: {row.profile.skills.join(" · ")}</span> : null}
+          {row.status !== "accepted" && row.status !== "rejected" && (
+            <div className="sckoll-sub-actions" style={{ marginTop: "1rem" }}>
+              <button type="button" className="sckoll-button sckoll-button-outline sckoll-button-small" disabled={busy === row.id} onClick={() => void setStatus(row.id, "shortlisted")}>
+                Shortlist
+              </button>
+              <button type="button" className="sckoll-button sckoll-button-acid sckoll-button-small" disabled={busy === row.id} onClick={() => void setStatus(row.id, "accepted")}>
+                Accept
+              </button>
+              <button type="button" className="sckoll-button sckoll-button-outline sckoll-button-small" disabled={busy === row.id} onClick={() => void setStatus(row.id, "rejected")}>
+                Reject
+              </button>
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
 
 export default function OpportunityDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -12,6 +144,9 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [showApply, setShowApply] = useState(false);
+  const [applied, setApplied] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -25,7 +160,10 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
     if (!opp) return;
     api
       .me()
-      .then((res) => setIsOwner(res.user.id === opp.clientId))
+      .then((res) => {
+        setSignedIn(true);
+        setIsOwner(res.user.id === opp.clientId);
+      })
       .catch(() => undefined);
   }, [opp]);
 
@@ -86,15 +224,26 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
                     <button type="button" className="sckoll-button sckoll-button-outline" disabled={busy} onClick={() => void onClose()}>
                       {busy ? "Closing…" : "Close opportunity"}
                     </button>
-                  ) : (
-                    <Link href="/sign-up?role=talent" className="sckoll-button sckoll-button-acid">
-                      Sign up to apply
+                  ) : applied ? (
+                    <Link href="/pipeline" className="sckoll-button sckoll-button-acid">
+                      View in your pipeline
                     </Link>
+                  ) : showApply ? null : (
+                    <button
+                      type="button"
+                      className="sckoll-button sckoll-button-acid"
+                      onClick={() => (signedIn ? setShowApply(true) : router.push("/sign-up?role=talent"))}
+                    >
+                      {signedIn ? "Apply now" : "Sign up to apply"}
+                    </button>
                   )}
                   <Link href="/how-it-works" className="sckoll-button sckoll-button-outline">
                     How applying works
                   </Link>
                 </div>
+                {showApply && !applied && (
+                  <ApplyModal opp={opp} onClose={() => setShowApply(false)} onApplied={() => { setApplied(true); setShowApply(false); }} />
+                )}
               </>
             )}
           </div>
@@ -111,6 +260,15 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
                 <p style={{ marginTop: "1.5rem", color: "var(--muted)", fontSize: "0.85rem" }}>
                   Skills: {opp.skills.join(" · ")}
                 </p>
+              )}
+              {isOwner && (
+                <>
+                  <div className="sckoll-subsection-heading" style={{ marginTop: "3rem" }}>
+                    <p className="sckoll-kicker">Applicant inbox</p>
+                    <h2>Ranked by fit.</h2>
+                  </div>
+                  <OwnerInbox oppId={opp.id} />
+                </>
               )}
             </div>
           </section>

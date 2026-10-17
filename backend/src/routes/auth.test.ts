@@ -10,6 +10,7 @@ import { testDatabaseUrl } from "../test-setup.js";
 import { hashToken, newOpaqueToken } from "../lib/password.js";
 import type { VerifyIdToken } from "../lib/google.js";
 
+process.env.SCKOLL_TEST_DB ??= "sckoll_test_auth";
 const TEST_DATABASE_URL = testDatabaseUrl();
 const TEST_SECRET = "test-secret-0123456789abcdef-test-secret";
 

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, jsonb, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -114,7 +114,53 @@ export const auditLog = pgTable("audit_log", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Talent applications to opportunities. One row per (opportunity, talent).
+ * Status lifecycle: applied → shortlisted → accepted | rejected; accepted is
+ * terminal and closes the opportunity to new applies (Phase 4+).
+ */
+export const applications = pgTable(
+  "applications",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    opportunityId: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, { onDelete: "cascade" }),
+    talentId: uuid("talent_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    pitch: text("pitch").notNull(),
+    bidAmount: integer("bid_amount"),
+    bidType: text("bid_type", { enum: ["fixed", "hourly"] }).notNull().default("fixed"),
+    status: text("status", { enum: ["applied", "shortlisted", "accepted", "rejected"] })
+      .notNull()
+      .default("applied"),
+    fitScore: integer("fit_score"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("applications_opp_idx").on(t.opportunityId),
+    index("applications_talent_idx").on(t.talentId),
+    uniqueIndex("applications_opp_talent_unique").on(t.opportunityId, t.talentId),
+  ],
+);
+
+/** Talent-saved searches with email alert toggle (digest in Phase 6). */
+export const savedSearches = pgTable("saved_searches", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  query: text("query").notNull().default(""),
+  filters: jsonb("filters").$type<Record<string, string>>().notNull().default({}),
+  emailAlerts: boolean("email_alerts").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Opportunity = typeof opportunities.$inferSelect;
+export type Application = typeof applications.$inferSelect;
+export type SavedSearch = typeof savedSearches.$inferSelect;
 
 /** GIN full-text index over title + description for marketplace search. */
 export const opportunitiesFts = index("opportunities_fts_idx").using(

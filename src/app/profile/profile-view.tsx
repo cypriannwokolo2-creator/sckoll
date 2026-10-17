@@ -140,6 +140,20 @@ export default function ProfileView() {
               <button type="button" className="sckoll-button sckoll-button-dark" onClick={() => setEditing(true)}>
                 Edit profile <span>↗</span>
               </button>
+              <Link href="/pipeline" className="sckoll-button sckoll-button-acid">
+                Your pipeline <span>↗</span>
+              </Link>
+              <Link href="/recommended" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
+                Recommended for you
+              </Link>
+              <Link href="/saved-searches" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
+                Saved searches
+              </Link>
+              {user.role !== "talent" && (
+                <Link href="/post-project" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
+                  Post a project
+                </Link>
+              )}
               <button type="button" className="sckoll-social-button" onClick={() => void onLogout()}>
                 Sign out
               </button>

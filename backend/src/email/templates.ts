@@ -53,3 +53,28 @@ export function resetPasswordTemplate(input: { actionUrl: string }): { subject: 
     ),
   };
 }
+
+export function applicationReceivedTemplate(input: { clientName?: string | null; talentName?: string | null; oppTitle: string; actionUrl: string }): { subject: string; html: string } {
+  const talent = escapeHtml(input.talentName?.trim() || "A candidate");
+  return {
+    subject: `New application: ${input.oppTitle}`,
+    html: shell(
+      `<p style="margin:0 0 16px;">Hi ${escapeHtml(input.clientName?.trim() || "there")},</p><p style="margin:0 0 16px;"><strong>${talent}</strong> applied to <strong>${escapeHtml(input.oppTitle)}</strong>. Review their pitch and fit before the trail goes cold.</p>${cta(input.actionUrl, "Review application")}`,
+    ),
+  };
+}
+
+export function applicationStatusTemplate(input: { talentName?: string | null; oppTitle: string; status: string; actionUrl: string }): { subject: string; html: string } {
+  const line =
+    input.status === "accepted"
+      ? "You were accepted. The client will reach out with next steps."
+      : input.status === "shortlisted"
+        ? "You were shortlisted. Keep an eye on your inbox for next steps."
+        : "This one did not move forward. Your profile stays live for the next match.";
+  return {
+    subject: `Update on your application: ${input.oppTitle}`,
+    html: shell(
+      `<p style="margin:0 0 16px;">Hi ${escapeHtml(input.talentName?.trim() || "there")},</p><p style="margin:0 0 16px;">${line}</p>${cta(input.actionUrl, "View your pipeline")}`,
+    ),
+  };
+}

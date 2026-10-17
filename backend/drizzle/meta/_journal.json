@@ -15,6 +15,13 @@
       "when": 1792234200000,
       "tag": "0001_fts_index",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792240776163,
+      "tag": "0002_luxuriant_fenris",
+      "breakpoints": true
     }
   ]
 }
