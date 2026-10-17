@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
-import { ApiError, api, type Contract, type ContractMessage, type Milestone } from "@/lib/api";
+import { ApiError, api, type Contract, type ContractMessage, type Milestone, type Payment } from "@/lib/api";
 
 export default function ContractDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -12,6 +12,7 @@ export default function ContractDetail({ params }: { params: Promise<{ id: strin
   const [oppTitle, setOppTitle] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [messages, setMessages] = useState<ContractMessage[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [names, setNames] = useState<{ client: string | null; talent: string | null }>({ client: null, talent: null });
   const [isClient, setIsClient] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,8 @@ export default function ContractDetail({ params }: { params: Promise<{ id: strin
       if (me) setIsClient(me.user.id === res.contract.clientId);
       const thread = await api.contractMessages(id).catch(() => null);
       if (thread) setMessages(thread.messages);
+      const trail = await api.contractPayments(id).catch(() => null);
+      if (trail) setPayments(trail.payments);
       await api.markMessagesRead(id).catch(() => undefined);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load this contract.");
@@ -49,6 +52,8 @@ export default function ContractDetail({ params }: { params: Promise<{ id: strin
         if (!cancelled && me) setIsClient(me.user.id === res.contract.clientId);
         const thread = await api.contractMessages(id).catch(() => null);
         if (!cancelled && thread) setMessages(thread.messages);
+        const trail = await api.contractPayments(id).catch(() => null);
+        if (!cancelled && trail) setPayments(trail.payments);
         await api.markMessagesRead(id).catch(() => undefined);
       })
       .catch((e: unknown) => {
@@ -73,6 +78,45 @@ export default function ContractDetail({ params }: { params: Promise<{ id: strin
       await load();
     } catch (e) {
       setNotice(e instanceof ApiError ? e.message : "Could not add milestone.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onFund(mid: string, amount: number | null) {
+    if (!amount) {
+      setNotice("Set a milestone amount before funding.");
+      return;
+    }
+    setNotice(null);
+    setBusy(true);
+    try {
+      const res = await api.fundMilestone(mid);
+      if (res.authorizationUrl) {
+        window.open(res.authorizationUrl, "_blank", "noopener");
+        setNotice("Checkout opened — complete payment, then refresh this page.");
+      } else {
+        setNotice("Funding already initialized for this milestone.");
+      }
+      const trail = await api.contractPayments(contract?.id ?? "").catch(() => null);
+      if (trail) setPayments(trail.payments);
+    } catch (e) {
+      setNotice(e instanceof ApiError ? e.message : "Could not start funding.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRelease(mid: string) {
+    if (!confirm("Release held funds to talent?")) return;
+    setNotice(null);
+    setBusy(true);
+    try {
+      await api.releaseMilestone(mid);
+      setNotice("Funds released to talent.");
+      await load();
+    } catch (e) {
+      setNotice(e instanceof ApiError ? e.message : "Could not release.");
     } finally {
       setBusy(false);
     }
@@ -217,10 +261,33 @@ export default function ContractDetail({ params }: { params: Promise<{ id: strin
                                 </button>
                               </>
                             )}
+                            {isClient && m.amount != null && m.status !== "approved" && (
+                              <button type="button" className="sckoll-button sckoll-button-dark sckoll-button-small" disabled={busy} onClick={() => void onFund(m.id, m.amount)}>
+                                Fund {`$${(m.amount / 100).toLocaleString()}`}
+                              </button>
+                            )}
+                            {isClient && m.status === "approved" && (
+                              <button type="button" className="sckoll-button sckoll-button-dark sckoll-button-small" disabled={busy} onClick={() => void onRelease(m.id)}>
+                                Release funds
+                              </button>
+                            )}
                           </div>
                         )}
                       </article>
                     ))}
+                  </div>
+                )}
+                {payments.length > 0 && (
+                  <div style={{ marginTop: "1.5rem" }}>
+                    <p className="sckoll-kicker" style={{ marginBottom: "0.75rem" }}>Money trail</p>
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {payments.map((pay) => (
+                        <div key={pay.id} style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", border: "1px solid var(--line)", borderRadius: "0.55rem", padding: "0.6rem 0.8rem", fontSize: "0.78rem" }}>
+                          <span>{pay.direction === "in" ? "↓ Funded" : "↑ Released"} · {pay.currency} {(pay.amount / 100).toLocaleString()}</span>
+                          <span style={{ color: "var(--muted)" }}>{pay.status}{pay.providerRef ? ` · ${pay.providerRef.slice(0, 18)}` : ""}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {isClient && contract.status === "active" && (

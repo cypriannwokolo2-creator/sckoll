@@ -66,6 +66,8 @@ export const profiles = pgTable("profiles", {
   avatarUrl: text("avatar_url"),
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   links: jsonb("links").$type<Record<string, string>>().notNull().default({}),
+  /** Talent payout destination (bank code, account number, account name). Collected for Paystack Transfers. */
+  payoutAccount: jsonb("payout_account").$type<{ bankCode?: string; accountNumber?: string; accountName?: string } | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -316,7 +318,32 @@ export const contractFlags = pgTable("contract_flags", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Ledger for every money movement. Provider-agnostic: Paystack now, Flutterwave/Stripe adapters later. */
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    milestoneId: uuid("milestone_id").references(() => milestones.id, { onDelete: "set null" }),
+    direction: text("direction", { enum: ["in", "out"] }).notNull(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("NGN"),
+    provider: text("provider").notNull().default("paystack"),
+    providerRef: text("provider_ref").unique(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    status: text("status", { enum: ["pending", "held", "released", "failed", "refunded", "frozen"] })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("payments_contract_idx").on(t.contractId)],
+);
+
 export type ContractRow = typeof contracts.$inferSelect;
+export type PaymentRow = typeof payments.$inferSelect;
 
 /** GIN full-text index over title + description for marketplace search. */
 export const opportunitiesFts = index("opportunities_fts_idx").using(

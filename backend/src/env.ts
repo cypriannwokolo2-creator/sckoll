@@ -9,6 +9,7 @@ const EnvSchema = z.object({
   API_URL: z.string().url().default("https://api.sckoll.com"),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  PAYSTACK_SECRET_KEY: z.string().optional().default(""),
   BREVO_API_KEY: z.string().optional().default(""),
   BREVO_FROM_SECURITY: z.string().default("Sckoll <no-reply@sckoll.com>"),
   BREVO_FROM_HELLO: z.string().default("Sckoll <hello@sckoll.com>"),

@@ -44,6 +44,11 @@ export default function ProfileSetupForm() {
         if (value) links[key] = value;
       }
       const avatar = String(form.get("avatarUrl") ?? "").trim();
+      const payoutAccount = {
+        bankCode: String(form.get("bankCode") ?? "").trim(),
+        accountNumber: String(form.get("accountNumber") ?? "").trim(),
+        accountName: String(form.get("accountName") ?? "").trim(),
+      };
       const res = await api.patchProfile({
         role,
         headline: String(form.get("headline") ?? "") || undefined,
@@ -54,6 +59,7 @@ export default function ProfileSetupForm() {
         ...(avatar ? { avatarUrl: avatar } : {}),
         skills,
         ...(Object.keys(links).length > 0 ? { links } : {}),
+        ...((payoutAccount.bankCode || payoutAccount.accountNumber || payoutAccount.accountName) ? { payoutAccount } : {}),
       });
       setProfile(res.profile);
       router.push("/profile");
@@ -147,6 +153,18 @@ export default function ProfileSetupForm() {
             <label>
               LinkedIn
               <input name="linkedin" type="url" placeholder="https://linkedin.com/in/you" defaultValue={profile?.links?.linkedin ?? ""} />
+            </label>
+            <label>
+              Payout bank code (e.g. 058 for GTB)
+              <input name="bankCode" placeholder="058" defaultValue={profile?.payoutAccount?.bankCode ?? ""} />
+            </label>
+            <label>
+              Payout account number
+              <input name="accountNumber" inputMode="numeric" placeholder="0123456789" defaultValue={profile?.payoutAccount?.accountNumber ?? ""} />
+            </label>
+            <label>
+              Payout account name
+              <input name="accountName" placeholder="Account holder name" defaultValue={profile?.payoutAccount?.accountName ?? ""} />
             </label>
             <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
               {busy ? "Saving…" : "Save and continue"} <span>↗</span>

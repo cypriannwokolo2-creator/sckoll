@@ -8,6 +8,7 @@ import { loadEnv, type Env } from "./env.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerContractRoutes } from "./routes/contracts.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
+import { registerPaymentRoutes } from "./routes/payments.js";
 import { registerShortlistRoutes } from "./routes/shortlists.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerContactRoutes } from "./routes/contact.js";
@@ -23,6 +24,15 @@ export async function buildServer(overrides?: Partial<Env>) {
     crossOriginResourcePolicy: { policy: "same-site" },
   });
   await app.register(cookie);
+  // Keep the raw JSON string for HMAC-verified webhooks (Paystack).
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (request, body, done) => {
+    try {
+      (request as unknown as { rawBody?: string }).rawBody = body as string;
+      done(null, JSON.parse(body as string));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
   await app.register(cors, {
     origin: [env.FRONTEND_URL, env.SITE_URL],
     credentials: true,
@@ -50,6 +60,7 @@ export async function buildServer(overrides?: Partial<Env>) {
   await registerAuthRoutes(app, env);
   await registerApplicationRoutes(app, env);
   await registerContractRoutes(app, env);
+  await registerPaymentRoutes(app, env);
   await registerNotificationRoutes(app, env);
   await registerShortlistRoutes(app, env);
   await registerContactRoutes(app, env);

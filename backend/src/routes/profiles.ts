@@ -15,6 +15,13 @@ const ProfileUpdateSchema = z.object({
   avatarUrl: z.string().url().max(500).optional(),
   skills: z.array(z.string().max(60)).max(30).optional(),
   links: z.record(z.string().max(500)).optional(),
+  payoutAccount: z
+    .object({
+      bankCode: z.string().trim().min(1).max(20).optional(),
+      accountNumber: z.string().trim().min(5).max(20).optional(),
+      accountName: z.string().trim().min(1).max(120).optional(),
+    })
+    .optional(),
   role: z.enum(["talent", "client", "both"]).optional(),
 });
 

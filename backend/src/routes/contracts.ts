@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { applications, auditLog, contractFlags, contracts, messages, milestones, opportunities, reviews, users } from "../db/schema.js";
+import { applications, auditLog, contractFlags, contracts, messages, milestones, opportunities, payments, reviews, users } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { notify } from "./notifications.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
@@ -390,6 +390,11 @@ export async function registerContractRoutes(app: FastifyInstance, env: Env): Pr
     }
     const inserted = (await db.insert(contractFlags).values({ contractId: id, reporterId: user.id, reason: parsed.data.reason }).returning())[0];
     await logAction(env, user.id, "contract.flag", id);
+    // Freeze held funds while the dispute is reviewed.
+    await db
+      .update(payments)
+      .set({ status: "frozen", updatedAt: new Date() })
+      .where(and(eq(payments.contractId, id), eq(payments.status, "held")));
     return reply.code(201).send({ ok: true, flag: inserted });
   });
 }

@@ -41,6 +41,11 @@ export default function ProfileView() {
         if (value) links[key] = value;
       }
       const avatar = String(form.get("avatarUrl") ?? "").trim();
+      const payoutAccount = {
+        bankCode: String(form.get("bankCode") ?? "").trim(),
+        accountNumber: String(form.get("accountNumber") ?? "").trim(),
+        accountName: String(form.get("accountName") ?? "").trim(),
+      };
       const res = await api.patchProfile({
         headline: String(form.get("headline") ?? "") || undefined,
         bio: String(form.get("bio") ?? "") || undefined,
@@ -48,6 +53,7 @@ export default function ProfileView() {
         availability: String(form.get("availability") ?? "") || undefined,
         hourlyRate: String(form.get("hourlyRate") ?? "") || undefined,
         ...(avatar ? { avatarUrl: avatar } : {}),
+        ...((payoutAccount.bankCode || payoutAccount.accountNumber || payoutAccount.accountName) ? { payoutAccount } : {}),
         skills,
         ...(Object.keys(links).length > 0 ? { links } : {}),
       });
@@ -132,6 +138,18 @@ export default function ProfileView() {
               <label>
                 LinkedIn
                 <input name="linkedin" type="url" defaultValue={profile?.links?.linkedin ?? ""} />
+              </label>
+              <label>
+                Payout bank code (e.g. 058 for GTB)
+                <input name="bankCode" defaultValue={profile?.payoutAccount?.bankCode ?? ""} />
+              </label>
+              <label>
+                Payout account number
+                <input name="accountNumber" inputMode="numeric" defaultValue={profile?.payoutAccount?.accountNumber ?? ""} />
+              </label>
+              <label>
+                Payout account name
+                <input name="accountName" defaultValue={profile?.payoutAccount?.accountName ?? ""} />
               </label>
               <label>
                 Location

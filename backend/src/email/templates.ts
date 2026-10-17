@@ -81,6 +81,21 @@ export function messageDigestTemplate(input: { preview: string; actionUrl: strin
   };
 }
 
+export function paymentReceiptTemplate(input: { kind: "fund" | "release" | "refund"; amount: number; currency: string; reference: string }): { subject: string; html: string } {
+  const lines = {
+    fund: "Your milestone funding was received and is earmarked for release on approval.",
+    release: "Funds were released to the talent account.",
+    refund: "The held amount was refunded to your original payment method.",
+  } as const;
+  const titles = { fund: "Milestone funded", release: "Milestone released", refund: "Payment refunded" } as const;
+  return {
+    subject: `Sckoll receipt — ${titles[input.kind].toLowerCase()}`,
+    html: shell(
+      `<p style="margin:0 0 16px;"><strong>${titles[input.kind]}</strong></p><p style="margin:0 0 16px;">${lines[input.kind]}</p><p style="margin:0 0 16px;">Amount: <strong>${escapeHtml(input.currency)} ${(input.amount / 100).toLocaleString()}</strong><br />Reference: <strong>${escapeHtml(input.reference)}</strong></p><p style="color:#5b6470;font-size:14px;">Keep this receipt for your records.</p>`,
+    ),
+  };
+}
+
 export function reviewReceivedTemplate(input: { stars: number; actionUrl: string }): { subject: string; html: string } {
   return {
     subject: `You received a ${input.stars}-star review`,

@@ -20,6 +20,7 @@ export interface Profile {
   hourlyRate: string | null;
   avatarUrl: string | null;
   skills: string[];
+  payoutAccount: { bankCode?: string; accountNumber?: string; accountName?: string } | null;
   links: Record<string, string>;
 }
 
@@ -266,7 +267,27 @@ export const api = {
     request<{ ok: boolean; review: Review }>("/v1/reviews", { method: "POST", body: JSON.stringify(input) }),
   flagContract: (contractId: string, reason: string) =>
     request<{ ok: boolean }>(`/v1/contracts/${contractId}/flag`, { method: "POST", body: JSON.stringify({ reason }) }),
+  fundMilestone: (id: string) =>
+    request<{ ok: boolean; payment: Payment; authorizationUrl?: string; deduped?: boolean }>(`/v1/milestones/${id}/fund`, { method: "POST" }),
+  releaseMilestone: (id: string) =>
+    request<{ ok: boolean; payment: Payment; deduped?: boolean }>(`/v1/milestones/${id}/release`, { method: "POST" }),
+  contractPayments: (contractId: string) =>
+    request<{ ok: boolean; payments: Payment[] }>(`/v1/contracts/${contractId}/payments`),
 };
+
+export interface Payment {
+  id: string;
+  contractId: string;
+  milestoneId: string | null;
+  direction: "in" | "out";
+  amount: number;
+  currency: string;
+  provider: string;
+  providerRef: string | null;
+  status: "pending" | "held" | "released" | "failed" | "refunded" | "frozen";
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Contract {
   id: string;
@@ -355,6 +376,7 @@ export interface PublicProfile {
   hourlyRate: string | null;
   avatarUrl: string | null;
   skills: string[];
+  payoutAccount: { bankCode?: string; accountNumber?: string; accountName?: string } | null;
   links: Record<string, string>;
 }
 

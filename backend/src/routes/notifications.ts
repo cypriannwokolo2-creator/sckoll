@@ -16,6 +16,10 @@ export const NOTIFICATION_TYPES = [
   "application.status",
   "shortlist.added",
   "search.alert",
+  "contract.milestone",
+  "message.received",
+  "review.received",
+  "payment.receipt",
 ] as const;
 
 const MAX_PER_HOUR = 20;
