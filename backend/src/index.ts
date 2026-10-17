@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import { Redis } from "ioredis";
 import { loadEnv, type Env } from "./env.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
+import { registerContractRoutes } from "./routes/contracts.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
 import { registerShortlistRoutes } from "./routes/shortlists.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -48,6 +49,7 @@ export async function buildServer(overrides?: Partial<Env>) {
 
   await registerAuthRoutes(app, env);
   await registerApplicationRoutes(app, env);
+  await registerContractRoutes(app, env);
   await registerNotificationRoutes(app, env);
   await registerShortlistRoutes(app, env);
   await registerContactRoutes(app, env);

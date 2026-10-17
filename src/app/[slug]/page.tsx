@@ -80,21 +80,6 @@ const PAGES: Record<string, ProductPageProps> = {
       { label: "DECIDE", title: "Shortlist together", description: "Keep notes and decisions visible to the people involved in hiring." },
     ],
   },
-  "contracts": {
-    eyebrow: "Work agreements",
-    title: "Make the terms as clear as the opportunity.",
-    description: "Move from a good match to a good working relationship with scope, milestones, approvals, and payments connected from day one.",
-    primaryLabel: "Start a secure agreement",
-    primaryHref: "/sign-up",
-    secondaryLabel: "Explore trust & safety",
-    secondaryHref: "/trust",
-    tone: "paper",
-    features: [
-      { label: "SCOPE", title: "Define what done means", description: "Translate a conversation into outcomes, timing, and responsibilities." },
-      { label: "MILESTONES", title: "Keep progress visible", description: "Use approvals and delivery checkpoints to reduce uncertainty." },
-      { label: "PAYMENT", title: "Protect the working relationship", description: "Keep payment events tied to the work and the agreed terms." },
-    ],
-  },
   "pricing": {
     eyebrow: "Simple by design",
     title: "Start free. Pay when Sckoll moves work forward.",

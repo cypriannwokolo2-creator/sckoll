@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { profiles, users } from "../db/schema.js";
+import { profiles, reviews, users } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
 
@@ -113,6 +113,8 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
         .limit(1)
     )[0];
     if (!row) return reply.code(404).send({ error: "not_found", message: "Profile not found." });
+    const reviewRows = await db.select().from(reviews).where(eq(reviews.rateeId, id)).orderBy(desc(reviews.createdAt)).limit(20);
+    const avg = reviewRows.length > 0 ? reviewRows.reduce((n, r) => n + r.stars, 0) / reviewRows.length : null;
     return reply.send({
       ok: true,
       profile: {
@@ -128,6 +130,9 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
         skills: row.profile.skills,
         links: row.profile.links,
       },
+      reviews: reviewRows.map((r) => ({ stars: r.stars, text: r.text, createdAt: r.createdAt })),
+      reviewCount: reviewRows.length,
+      reviewAvg: avg === null ? null : Math.round(avg * 10) / 10,
     });
   });
 }

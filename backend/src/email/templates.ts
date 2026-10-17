@@ -54,6 +54,42 @@ export function resetPasswordTemplate(input: { actionUrl: string }): { subject: 
   };
 }
 
+export function contractStartedTemplate(input: { oppTitle: string; actionUrl: string }): { subject: string; html: string } {
+  return {
+    subject: `Contract started: ${input.oppTitle}`,
+    html: shell(
+      `<p style="margin:0 0 16px;">A contract is now active for <strong>${escapeHtml(input.oppTitle)}</strong>.</p><p style="margin:0 0 16px;">Review the scope together and agree the first milestone before work begins.</p>${cta(input.actionUrl, "Open contract")}`,
+    ),
+  };
+}
+
+export function contractMilestoneTemplate(input: { milestoneTitle: string; status: string; actionUrl: string }): { subject: string; html: string } {
+  return {
+    subject: `Milestone ${input.status}: ${input.milestoneTitle}`,
+    html: shell(
+      `<p style="margin:0 0 16px;">Milestone <strong>${escapeHtml(input.milestoneTitle)}</strong> was marked <strong>${escapeHtml(input.status)}</strong>.</p>${cta(input.actionUrl, "Open contract")}`,
+    ),
+  };
+}
+
+export function messageDigestTemplate(input: { preview: string; actionUrl: string }): { subject: string; html: string } {
+  return {
+    subject: "New message on your Sckoll contract",
+    html: shell(
+      `<p style="margin:0 0 16px;">&ldquo;${escapeHtml(input.preview)}&rdquo;</p>${cta(input.actionUrl, "Reply in contract")}`,
+    ),
+  };
+}
+
+export function reviewReceivedTemplate(input: { stars: number; actionUrl: string }): { subject: string; html: string } {
+  return {
+    subject: `You received a ${input.stars}-star review`,
+    html: shell(
+      `<p style="margin:0 0 16px;">Someone you worked with left you a <strong>${input.stars}-star review</strong>.</p>${cta(input.actionUrl, "View review")}`,
+    ),
+  };
+}
+
 export function applicationReceivedTemplate(input: { clientName?: string | null; talentName?: string | null; oppTitle: string; actionUrl: string }): { subject: string; html: string } {
   const talent = escapeHtml(input.talentName?.trim() || "A candidate");
   return {

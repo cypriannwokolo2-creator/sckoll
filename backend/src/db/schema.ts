@@ -214,6 +214,109 @@ export type Application = typeof applications.$inferSelect;
 export type SavedSearch = typeof savedSearches.$inferSelect;
 export type ShortlistEntry = typeof shortlists.$inferSelect;
 export type NotificationRow = typeof notifications.$inferSelect;
+/** Work agreements created from accepted applications. One per opportunity. */
+export const contracts = pgTable(
+  "contracts",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    opportunityId: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    talentId: uuid("talent_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    scope: text("scope").notNull(),
+    status: text("status", { enum: ["draft", "active", "completed", "cancelled"] })
+      .notNull()
+      .default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("contracts_opportunity_unique").on(t.opportunityId)],
+);
+
+/** Payment-tied delivery checkpoints. Client funds scope; approvals release trust. */
+export const milestones = pgTable(
+  "milestones",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    amount: integer("amount"),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    status: text("status", { enum: ["pending", "submitted", "approved", "rejected"] })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("milestones_contract_idx").on(t.contractId)],
+);
+
+/** Contract-scoped messaging with read receipts + scam-pattern flags. */
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    flagged: boolean("flagged").notNull().default(false),
+    flagReason: text("flag_reason"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("messages_contract_idx").on(t.contractId, t.createdAt)],
+);
+
+/** Two-sided reviews, only on completed contracts, one per side. */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    raterId: uuid("rater_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rateeId: uuid("ratee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stars: integer("stars").notNull(),
+    text: text("text").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("reviews_contract_rater_unique").on(t.contractId, t.raterId)],
+);
+
+/** Dispute flags → admin review queue stub. */
+export const contractFlags = pgTable("contract_flags", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  contractId: uuid("contract_id")
+    .notNull()
+    .references(() => contracts.id, { onDelete: "cascade" }),
+  reporterId: uuid("reporter_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  status: text("status", { enum: ["open", "resolved"] }).notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ContractRow = typeof contracts.$inferSelect;
 
 /** GIN full-text index over title + description for marketplace search. */
 export const opportunitiesFts = index("opportunities_fts_idx").using(

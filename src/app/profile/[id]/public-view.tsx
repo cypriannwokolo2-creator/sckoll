@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
-import { ApiError, api, type PublicProfile } from "@/lib/api";
+import { ApiError, api, type PublicProfile, type PublicProfileResponse } from "@/lib/api";
 
 function initials(name: string | null): string {
   if (!name) return "?";
@@ -13,13 +13,21 @@ function initials(name: string | null): string {
 export default function PublicProfileView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [reviews, setReviews] = useState<PublicProfileResponse["reviews"]>([]);
+  const [reviewAvg, setReviewAvg] = useState<number | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [shortlisted, setShortlisted] = useState(false);
 
   useEffect(() => {
     api
       .publicProfile(id)
-      .then((res) => setProfile(res.profile))
+      .then((res) => {
+        setProfile(res.profile);
+        setReviews(res.reviews);
+        setReviewAvg(res.reviewAvg);
+        setReviewCount(res.reviewCount);
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load this profile."));
   }, [id]);
 
@@ -109,6 +117,21 @@ export default function PublicProfileView({ params }: { params: Promise<{ id: st
                   <p>SKILLS</p>
                   <h3>What they do</h3>
                   <span>{profile.skills.length > 0 ? profile.skills.join(" · ") : "No skills listed yet."}</span>
+                </article>
+                <article className="sckoll-sub-card">
+                  <p>REVIEWS{reviewCount > 0 ? ` · ${reviewAvg} AVG` : ""}</p>
+                  <h3>{reviewCount > 0 ? `${reviewCount} review${reviewCount === 1 ? "" : "s"}` : "No reviews yet."}</h3>
+                  {reviews.length > 0 ? (
+                    <span>
+                      {reviews.slice(0, 3).map((r, i) => (
+                        <span key={i} style={{ display: "block", marginBottom: "0.6rem" }}>
+                          {"★".repeat(r.stars)}{"☆".repeat(5 - r.stars)}{r.text ? ` — ${r.text.slice(0, 120)}` : ""}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span>Reviews appear here after completed contracts.</span>
+                  )}
                 </article>
                 <article className="sckoll-sub-card">
                   <p>LINKS</p>

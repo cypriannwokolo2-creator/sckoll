@@ -36,6 +36,13 @@
       "when": 1792243067647,
       "tag": "0004_uneven_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792244852599,
+      "tag": "0005_broken_giant_man",
+      "breakpoints": true
     }
   ]
 }

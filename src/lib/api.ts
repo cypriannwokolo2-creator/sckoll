@@ -188,7 +188,7 @@ export const api = {
   createSavedSearch: (input: { query: string; filters?: Record<string, string>; emailAlerts?: boolean }) =>
     request<{ ok: boolean; search: SavedSearch }>("/v1/saved-searches", { method: "POST", body: JSON.stringify(input) }),
   deleteSavedSearch: (id: string) => request<{ ok: boolean }>(`/v1/saved-searches/${id}`, { method: "DELETE" }),
-  publicProfile: (id: string) => request<{ ok: boolean; profile: PublicProfile }>(`/v1/profiles/${id}`),
+  publicProfile: (id: string) => request<PublicProfileResponse>(`/v1/profiles/${id}`),
   shortlists: () =>
     request<{
       ok: boolean;
@@ -224,7 +224,93 @@ export const api = {
       body: JSON.stringify(input),
     }),
   runDigest: () => request<{ ok: boolean; digests: number }>("/v1/notifications/digest-run", { method: "POST" }),
+  myContracts: () =>
+    request<{
+      ok: boolean;
+      asClient: Array<{ contract: Contract; opportunity: { id: string; title: string; status: string } }>;
+      asTalent: Array<{ contract: Contract; opportunity: { id: string; title: string; status: string } }>;
+    }>("/v1/contracts/me"),
+  contractDetail: (id: string) =>
+    request<{
+      ok: boolean;
+      contract: Contract;
+      opportunity: { id: string; title: string; status: string } | null;
+      milestones: Milestone[];
+      client: { id: string; name: string | null } | null;
+      talent: { id: string; name: string | null } | null;
+    }>(`/v1/contracts/${id}`),
+  createContract: (applicationId: string, scope?: string) =>
+    request<{ ok: boolean; contract: Contract; deduped?: boolean }>("/v1/contracts", {
+      method: "POST",
+      body: JSON.stringify({ applicationId, ...(scope ? { scope } : {}) }),
+    }),
+  patchContract: (id: string, input: { scope?: string; status?: string }) =>
+    request<{ ok: boolean; contract: Contract }>(`/v1/contracts/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  addMilestone: (contractId: string, input: { title: string; amount?: number; dueDate?: string }) =>
+    request<{ ok: boolean; milestone: Milestone }>(`/v1/contracts/${contractId}/milestones`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  patchMilestone: (id: string, status: string) =>
+    request<{ ok: boolean; milestone: Milestone }>(`/v1/milestones/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  contractMessages: (contractId: string) =>
+    request<{ ok: boolean; messages: ContractMessage[] }>(`/v1/contracts/${contractId}/messages`),
+  sendContractMessage: (contractId: string, body: string) =>
+    request<{ ok: boolean; message: ContractMessage; warning: string | null }>(`/v1/contracts/${contractId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
+  markMessagesRead: (contractId: string) =>
+    request<{ ok: boolean }>(`/v1/contracts/${contractId}/messages/read`, { method: "POST" }),
+  postReview: (input: { contractId: string; stars: number; text?: string }) =>
+    request<{ ok: boolean; review: Review }>("/v1/reviews", { method: "POST", body: JSON.stringify(input) }),
+  flagContract: (contractId: string, reason: string) =>
+    request<{ ok: boolean }>(`/v1/contracts/${contractId}/flag`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
+
+export interface Contract {
+  id: string;
+  opportunityId: string;
+  applicationId: string;
+  clientId: string;
+  talentId: string;
+  scope: string;
+  status: "draft" | "active" | "completed" | "cancelled";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Milestone {
+  id: string;
+  contractId: string;
+  title: string;
+  amount: number | null;
+  dueDate: string | null;
+  status: "pending" | "submitted" | "approved" | "rejected";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContractMessage {
+  id: string;
+  contractId: string;
+  senderId: string;
+  body: string;
+  flagged: boolean;
+  flagReason: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  contractId: string;
+  raterId: string;
+  rateeId: string;
+  stars: number;
+  text: string;
+  createdAt: string;
+}
 
 export interface AppNotification {
   id: string;
@@ -270,6 +356,14 @@ export interface PublicProfile {
   avatarUrl: string | null;
   skills: string[];
   links: Record<string, string>;
+}
+
+export interface PublicProfileResponse {
+  ok: boolean;
+  profile: PublicProfile;
+  reviews: Array<{ stars: number; text: string; createdAt: string }>;
+  reviewCount: number;
+  reviewAvg: number | null;
 }
 
 export interface Application {
