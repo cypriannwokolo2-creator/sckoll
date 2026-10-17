@@ -16,6 +16,7 @@ Backend env lives in `backend/.env` (gitignored). Start from `backend/.env.examp
 | `BREVO_API_KEY` | for mail | Empty = mail stays off; dev logs `[mail:off]` to console |
 | `BREVO_FROM_SECURITY` | no | Default `Sckoll <no-reply@sckoll.com>` — verify on sckoll.com in Brevo |
 | `BREVO_FROM_HELLO` | no | Default `Sckoll <hello@sckoll.com>` |
+| `CONTACT_TO` | no | Inbox for `/v1/contact`; empty = falls back to hello sender |
 | `SITE_URL` / `FRONTEND_URL` | yes | `https://www.sckoll.com` in prod, `http://localhost:3000` in dev |
 
 Frontend (Vercel project env):
@@ -59,6 +60,8 @@ Frontend (Vercel project env):
 | `POST` | `/v1/auth/verify` | no | `{token,email}` → `email_verified=true` + welcome mail |
 | `POST` | `/v1/auth/forgot` | no | always 200 (no enumeration) + reset mail if user exists |
 | `POST` | `/v1/auth/reset` | no | single-use token → new password |
+| `POST` | `/v1/auth/resend` | no | fresh verification link, always generic 200 |
+| `POST` | `/v1/contact` | no | contact form → inbox mail (`CONTACT_TO` or hello sender) |
 | `PATCH` | `/v1/profiles/me` | cookie | onboarding / edit profile |
 | `GET` | `/v1/talent/search` | cookie | rules-based fit scoring (embeddings later) |
 

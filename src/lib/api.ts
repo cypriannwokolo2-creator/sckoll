@@ -60,10 +60,14 @@ export const api = {
   me: () => request<{ ok: boolean; user: PublicUser; profile: Profile | null }>("/v1/me"),
   verify: (input: { token: string; email: string }) =>
     request<{ ok: boolean; user: PublicUser }>("/v1/auth/verify", { method: "POST", body: JSON.stringify(input) }),
+  resend: (email: string) =>
+    request<{ ok: boolean }>("/v1/auth/resend", { method: "POST", body: JSON.stringify({ email }) }),
   forgot: (email: string) =>
     request<{ ok: boolean }>("/v1/auth/forgot", { method: "POST", body: JSON.stringify({ email }) }),
   reset: (input: { token: string; email: string; password: string }) =>
     request<{ ok: boolean }>("/v1/auth/reset", { method: "POST", body: JSON.stringify(input) }),
   patchProfile: (input: Partial<Profile> & { role?: string }) =>
     request<{ ok: boolean; profile: Profile }>("/v1/profiles/me", { method: "PATCH", body: JSON.stringify(input) }),
+  contact: (input: { name: string; email: string; topic: string; message: string }) =>
+    request<{ ok: boolean }>("/v1/contact", { method: "POST", body: JSON.stringify(input) }),
 };

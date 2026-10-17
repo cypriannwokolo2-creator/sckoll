@@ -3,12 +3,25 @@
 @theme inline {
   --font-sans: var(--font-maven);
   --font-wordmark: var(--font-julius);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --color-acid: #a3ff00;
   --color-ink: #0b0c0e;
   --color-paper: #f1f6e9;
   --color-surface: #ffffff;
   --color-muted: #5b6470;
   --color-line: rgba(11, 12, 14, 0.12);
+  --animate-flip-up: flip-up 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes flip-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 :root {
@@ -1901,7 +1914,8 @@ input {
   font-weight: 700;
 }
 
-.sckoll-auth-form input:not([type="checkbox"]) {
+.sckoll-auth-form input:not([type="checkbox"]),
+.sckoll-auth-form textarea {
   width: 100%;
   min-height: 2.9rem;
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -1910,10 +1924,18 @@ input {
   padding: 0 0.8rem;
   color: var(--white);
   outline: 0;
+  font: inherit;
   font-size: 0.85rem;
 }
 
-.sckoll-auth-form input:focus {
+.sckoll-auth-form textarea {
+  min-height: 5.5rem;
+  padding: 0.7rem 0.8rem;
+  resize: vertical;
+}
+
+.sckoll-auth-form input:focus,
+.sckoll-auth-form textarea:focus {
   border-color: var(--acid);
   box-shadow: 0 0 0 3px rgba(163, 255, 0, 0.12);
 }
@@ -2232,4 +2254,73 @@ input {
   color: var(--acid);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.sckoll-auth-check a {
+  color: var(--acid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sckoll-auth-form select {
+  width: 100%;
+  min-height: 2.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 0.55rem;
+  background: #08090a;
+  padding: 0 0.8rem;
+  color: var(--white);
+  outline: 0;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.sckoll-auth-form select:focus {
+  border-color: var(--acid);
+  box-shadow: 0 0 0 3px rgba(163, 255, 0, 0.12);
+}
+
+.sckoll-empty {
+  border: 1px dashed var(--line);
+  border-radius: 1rem;
+  background: var(--white);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.sckoll-empty h3 {
+  margin: 0;
+  font-family: var(--font-maven);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.sckoll-empty p {
+  margin: 0.6rem auto 1.25rem;
+  max-width: 26rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.sckoll-skeleton {
+  border-radius: 0.6rem;
+  background: linear-gradient(90deg, rgba(11, 12, 14, 0.06) 25%, rgba(11, 12, 14, 0.12) 50%, rgba(11, 12, 14, 0.06) 75%);
+  background-size: 200% 100%;
+  animation: sckoll-shimmer 1.4s infinite;
+  min-height: 1rem;
+}
+
+.sckoll-auth-card .sckoll-skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.06) 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes sckoll-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }

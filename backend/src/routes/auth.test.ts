@@ -219,6 +219,19 @@ describe("auth routes", () => {
     await gapp3.close();
   });
 
+  it("resends verification links without enumeration", async () => {
+    await app.inject({
+      method: "POST",
+      url: "/v1/auth/signup",
+      payload: { email: "re2@sckoll.com", name: "Re", password: "correct-horse-123", role: "talent" },
+    });
+    const known = await app.inject({ method: "POST", url: "/v1/auth/resend", payload: { email: "re2@sckoll.com" } });
+    expect(known.statusCode).toBe(200);
+    const unknown = await app.inject({ method: "POST", url: "/v1/auth/resend", payload: { email: "ghost@sckoll.com" } });
+    expect(unknown.statusCode).toBe(200);
+    expect(unknown.json()).toEqual(known.json());
+  });
+
   it("guards profile writes behind auth", async () => {
     const anon = await app.inject({ method: "PATCH", url: "/v1/profiles/me", payload: { headline: "x" } });
     expect(anon.statusCode).toBe(401);

@@ -260,6 +260,26 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
     },
   );
 
+  // POST /v1/auth/resend — new verification link (always generic, no enumeration)
+  app.post("/v1/auth/resend", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const parsed = z.object({ email: z.string().email() }).safeParse(request.body);
+    if (!parsed.success) return reply.send({ ok: true });
+    const email = normalizeEmail(parsed.data.email);
+    const db = getDb(env.DATABASE_URL);
+    const user = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+    if (user && !user.emailVerified) {
+      const rawToken = newOpaqueToken();
+      await db.insert(verificationTokens).values({
+        userId: user.id,
+        tokenHash: hashToken(env.AUTH_SECRET, rawToken),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      });
+      const actionUrl = `${env.SITE_URL.replace(/\/$/, "")}/verify?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
+      await sendMail(env, "security", { email, name: user.name }, verifyEmailTemplate({ name: user.name, actionUrl }), ["verify-email"]);
+    }
+    return reply.send({ ok: true, message: "If that email needs verification, a fresh link is on its way." });
+  });
+
   // POST /v1/auth/forgot + /v1/auth/reset
   app.post("/v1/auth/forgot", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = z.object({ email: z.string().email() }).safeParse(request.body);

@@ -38,6 +38,11 @@ export default function ProfileSetupForm() {
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 30);
+      const links: Record<string, string> = {};
+      for (const key of ["website", "github", "linkedin"] as const) {
+        const value = String(form.get(key) ?? "").trim();
+        if (value) links[key] = value;
+      }
       const res = await api.patchProfile({
         role,
         headline: String(form.get("headline") ?? "") || undefined,
@@ -46,6 +51,7 @@ export default function ProfileSetupForm() {
         availability: String(form.get("availability") ?? "") || undefined,
         hourlyRate: String(form.get("hourlyRate") ?? "") || undefined,
         skills,
+        ...(Object.keys(links).length > 0 ? { links } : {}),
       });
       setProfile(res.profile);
       router.push("/profile");
@@ -60,7 +66,10 @@ export default function ProfileSetupForm() {
     return (
       <main className="sckoll-auth-page">
         <div className="sckoll-auth-brand">
-          <Link href="/">SCKOLL</Link>
+          <Link href="/">
+            <Mark small />
+            <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
+          </Link>
         </div>
         <p style={{ textAlign: "center", color: "#aeb4bc" }}>Loading your workspace…</p>
       </main>
@@ -103,11 +112,15 @@ export default function ProfileSetupForm() {
             </label>
             <label>
               Bio
-              <input name="bio" placeholder="What you do best, in one line" defaultValue={profile?.bio ?? ""} />
+              <textarea name="bio" rows={3} placeholder="What you do best, in a few lines" defaultValue={profile?.bio ?? ""} />
             </label>
             <label>
               Skills (comma separated)
               <input name="skills" placeholder="react, postgres, technical writing" defaultValue={(profile?.skills ?? []).join(", ")} />
+            </label>
+            <label>
+              Availability
+              <input name="availability" placeholder="Immediate / 2 weeks notice" defaultValue={profile?.availability ?? ""} />
             </label>
             <label>
               Location
@@ -116,6 +129,18 @@ export default function ProfileSetupForm() {
             <label>
               Hourly rate
               <input name="hourlyRate" placeholder="$45/hr" defaultValue={profile?.hourlyRate ?? ""} />
+            </label>
+            <label>
+              Website
+              <input name="website" type="url" placeholder="https://your-portfolio.com" defaultValue={profile?.links?.website ?? ""} />
+            </label>
+            <label>
+              GitHub
+              <input name="github" type="url" placeholder="https://github.com/you" defaultValue={profile?.links?.github ?? ""} />
+            </label>
+            <label>
+              LinkedIn
+              <input name="linkedin" type="url" placeholder="https://linkedin.com/in/you" defaultValue={profile?.links?.linkedin ?? ""} />
             </label>
             <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
               {busy ? "Saving…" : "Save and continue"} <span>↗</span>

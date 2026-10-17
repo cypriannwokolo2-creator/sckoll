@@ -14,6 +14,7 @@ const julius = Julius_Sans_One({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.sckoll.com"),
   title: "Sckoll — Find the right work. Find the right people.",
   description:
     "Sckoll helps freelancers, job seekers, founders, agencies, and lean teams find relevant work or reliable talent without endless scrolling, form-filling, or recruiter overhead.",
@@ -26,13 +27,19 @@ export const metadata: Metadata = {
     "candidate matching",
     "get paid",
   ],
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Sckoll — Find the right work. Find the right people.",
     description:
       "Find relevant opportunities, send better pitches, or source reliable talent without the manual grind.",
-    url: "https://sckoll.com",
+    url: "https://www.sckoll.com",
     siteName: "Sckoll",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sckoll — Find the right work. Find the right people.",
+    description: "Find relevant opportunities, send better pitches, or source reliable talent without the manual grind.",
   },
 };
 
@@ -43,7 +50,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${maven.variable} ${julius.variable} scroll-smooth`}>
-      <body className="min-h-screen bg-[#050505] font-sans text-zinc-50 antialiased">
+      <body className="min-h-screen font-sans antialiased">
         {children}
       </body>
     </html>

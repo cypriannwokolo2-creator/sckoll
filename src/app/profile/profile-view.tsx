@@ -35,6 +35,11 @@ export default function ProfileView() {
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 30);
+      const links: Record<string, string> = {};
+      for (const key of ["website", "github", "linkedin"] as const) {
+        const value = String(form.get(key) ?? "").trim();
+        if (value) links[key] = value;
+      }
       const res = await api.patchProfile({
         headline: String(form.get("headline") ?? "") || undefined,
         bio: String(form.get("bio") ?? "") || undefined,
@@ -42,6 +47,7 @@ export default function ProfileView() {
         availability: String(form.get("availability") ?? "") || undefined,
         hourlyRate: String(form.get("hourlyRate") ?? "") || undefined,
         skills,
+        ...(Object.keys(links).length > 0 ? { links } : {}),
       });
       setProfile(res.profile);
       setEditing(false);
@@ -95,11 +101,31 @@ export default function ProfileView() {
               </label>
               <label>
                 Bio
-                <input name="bio" defaultValue={profile?.bio ?? ""} />
+                <textarea name="bio" rows={3} defaultValue={profile?.bio ?? ""} />
               </label>
               <label>
                 Skills (comma separated)
                 <input name="skills" defaultValue={(profile?.skills ?? []).join(", ")} />
+              </label>
+              <label>
+                Availability
+                <input name="availability" defaultValue={profile?.availability ?? ""} />
+              </label>
+              <label>
+                Hourly rate
+                <input name="hourlyRate" defaultValue={profile?.hourlyRate ?? ""} />
+              </label>
+              <label>
+                Website
+                <input name="website" type="url" defaultValue={profile?.links?.website ?? ""} />
+              </label>
+              <label>
+                GitHub
+                <input name="github" type="url" defaultValue={profile?.links?.github ?? ""} />
+              </label>
+              <label>
+                LinkedIn
+                <input name="linkedin" type="url" defaultValue={profile?.links?.linkedin ?? ""} />
               </label>
               <label>
                 Location

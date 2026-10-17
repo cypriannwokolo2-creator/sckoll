@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import { Redis } from "ioredis";
 import { loadEnv, type Env } from "./env.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerContactRoutes } from "./routes/contact.js";
 import { registerProfileRoutes } from "./routes/profiles.js";
 
 export async function buildServer(overrides?: Partial<Env>) {
@@ -42,6 +43,7 @@ export async function buildServer(overrides?: Partial<Env>) {
   app.get("/health", async () => ({ ok: true, service: "sckoll-api", version: "0.1.0" }));
 
   await registerAuthRoutes(app, env);
+  await registerContactRoutes(app, env);
   await registerProfileRoutes(app, env);
 
   app.addHook("onClose", async () => {

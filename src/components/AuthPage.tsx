@@ -46,7 +46,18 @@ function GoogleButton({ role }: { role: "talent" | "client" }) {
     setReady(true);
   }, [onCredential, ready]);
 
-  if (!GOOGLE_CLIENT_ID) return null;
+  if (!GOOGLE_CLIENT_ID) {
+    return (
+      <>
+        <div className="sckoll-auth-divider">
+          <span>or continue with</span>
+        </div>
+        <p className="sckoll-auth-note" style={{ marginTop: 0 }}>
+          Google sign-in activates once the site owner connects it — email sign-in works now.
+        </p>
+      </>
+    );
+  }
   return (
     <>
       {GOOGLE_CLIENT_ID && <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />}
@@ -149,7 +160,10 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         </label>
         {isSignUp && (
           <label className="sckoll-auth-check">
-            <input type="checkbox" required /> <span>I agree to the Sckoll terms and privacy notice.</span>
+            <input type="checkbox" required />{" "}
+            <span>
+              I agree to the Sckoll <Link href="/terms">terms</Link> and <Link href="/privacy">privacy notice</Link>.
+            </span>
           </label>
         )}
         <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>

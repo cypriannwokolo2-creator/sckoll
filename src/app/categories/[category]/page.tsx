@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ProductPage from "@/components/ProductPage";
 
 const CATEGORY_DATA: Record<string, { title: string; description: string; skills: string }> = {
@@ -27,7 +28,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const data = CATEGORY_DATA[category];
 
   if (!data) {
-    return null;
+    notFound();
   }
 
   return (

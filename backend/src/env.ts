@@ -12,6 +12,7 @@ const EnvSchema = z.object({
   BREVO_API_KEY: z.string().optional().default(""),
   BREVO_FROM_SECURITY: z.string().default("Sckoll <no-reply@sckoll.com>"),
   BREVO_FROM_HELLO: z.string().default("Sckoll <hello@sckoll.com>"),
+  CONTACT_TO: z.string().default(""),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
