@@ -210,7 +210,40 @@ export const api = {
   patchShortlist: (id: string, input: { notes?: string }) =>
     request<{ ok: boolean }>(`/v1/shortlists/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
   removeShortlist: (id: string) => request<{ ok: boolean }>(`/v1/shortlists/${id}`, { method: "DELETE" }),
+  notifications: (limit = 20, offset = 0) =>
+    request<{ ok: boolean; notifications: AppNotification[]; unread: number }>(
+      `/v1/notifications?limit=${limit}&offset=${offset}`,
+    ),
+  markNotificationsRead: (ids?: string[]) =>
+    request<{ ok: boolean }>("/v1/notifications/read", { method: "POST", body: JSON.stringify(ids ? { ids } : {}) }),
+  notificationPrefs: () =>
+    request<{ ok: boolean; prefs: NotificationPrefs; types: string[] }>("/v1/notifications/prefs"),
+  patchNotificationPrefs: (input: { emailEnabled?: boolean; inappEnabled?: boolean; mutedEvents?: string[] }) =>
+    request<{ ok: boolean; prefs: NotificationPrefs }>("/v1/notifications/prefs", {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  runDigest: () => request<{ ok: boolean; digests: number }>("/v1/notifications/digest-run", { method: "POST" }),
 };
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPrefs {
+  userId: string;
+  emailEnabled: boolean;
+  inappEnabled: boolean;
+  mutedEvents: string[];
+  updatedAt: string;
+}
 
 export interface TalentResult {
   id: string;

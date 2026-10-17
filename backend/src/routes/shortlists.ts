@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { auditLog, opportunities, profiles, shortlists, users } from "../db/schema.js";
 import type { Env } from "../env.js";
+import { notify } from "./notifications.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
 
 /**
@@ -35,7 +36,7 @@ export async function registerShortlistRoutes(app: FastifyInstance, env: Env): P
         return reply.code(400).send({ error: "invalid_request", message: "You cannot shortlist yourself." });
       }
       const db = getDb(env.DATABASE_URL);
-      const talent = (await db.select({ id: users.id }).from(users).where(eq(users.id, parsed.data.talentId)).limit(1))[0];
+      const talent = (await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, parsed.data.talentId)).limit(1))[0];
       if (!talent) return reply.code(404).send({ error: "not_found", message: "Talent not found." });
       if (parsed.data.opportunityId) {
         const opp = (await db.select().from(opportunities).where(eq(opportunities.id, parsed.data.opportunityId)).limit(1))[0];
@@ -65,6 +66,14 @@ export async function registerShortlistRoutes(app: FastifyInstance, env: Env): P
       } catch {
         // best-effort
       }
+      await notify(env, {
+        actorId: user.id,
+        type: "shortlist.added",
+        userId: user.id,
+        title: `Shortlisted ${talent.name ?? "talent"}`,
+        body: "Review proof and add team notes in your hiring room.",
+        link: "/team-workspace",
+      });
       return reply.code(201).send({ ok: true, shortlist: inserted });
     },
   );

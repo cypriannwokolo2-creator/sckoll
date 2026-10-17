@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
+import NotifBell from "@/components/NotifBell";
 import { ApiError, api, budgetLabel, type Opportunity } from "@/lib/api";
 
 function RecommendedFeed() {
@@ -77,6 +78,7 @@ export default function RecommendedPage() {
             <span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span>
           </Link>
           <div className="sckoll-subnav-actions">
+            <NotifBell />
             <Link href="/pipeline">Pipeline</Link>
             <Link href="/profile" className="sckoll-button sckoll-button-acid sckoll-button-small">
               Profile

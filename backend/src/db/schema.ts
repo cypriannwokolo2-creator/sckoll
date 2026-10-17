@@ -175,13 +175,45 @@ export const savedSearches = pgTable("saved_searches", {
   query: text("query").notNull().default(""),
   filters: jsonb("filters").$type<Record<string, string>>().notNull().default({}),
   emailAlerts: boolean("email_alerts").notNull().default(false),
+  lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Per-user notification channel preferences. One row per user, created on demand. */
+export const notificationPrefs = pgTable("notification_prefs", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  inappEnabled: boolean("inapp_enabled").notNull().default(true),
+  /** Per-event email toggles, e.g. {"application.received": false}. Absent = enabled. */
+  mutedEvents: jsonb("muted_events").$type<string[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** In-app notification inbox. Email delivery is handled at fan-out, not stored. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull().default(""),
+    link: text("link").notNull().default("/notifications"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+);
 
 export type Opportunity = typeof opportunities.$inferSelect;
 export type Application = typeof applications.$inferSelect;
 export type SavedSearch = typeof savedSearches.$inferSelect;
 export type ShortlistEntry = typeof shortlists.$inferSelect;
+export type NotificationRow = typeof notifications.$inferSelect;
 
 /** GIN full-text index over title + description for marketplace search. */
 export const opportunitiesFts = index("opportunities_fts_idx").using(

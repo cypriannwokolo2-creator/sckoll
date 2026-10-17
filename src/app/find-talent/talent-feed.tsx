@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
+import NotifBell from "@/components/NotifBell";
 import { ApiError, api, type TalentResult } from "@/lib/api";
 
 function TalentFeed() {
@@ -144,6 +145,7 @@ export default function FindTalentPage() {
             <Link href="/pricing">Pricing</Link>
           </div>
           <div className="sckoll-subnav-actions">
+            <NotifBell />
             <Link href="/team-workspace">Hiring room</Link>
             <Link href="/post-project" className="sckoll-button sckoll-button-acid sckoll-button-small">
               Post a project

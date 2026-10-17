@@ -7,6 +7,7 @@ import type { Env } from "../env.js";
 import { resolveSender, sendBrevoEmail } from "../lib/brevo.js";
 import { createGoogleVerifier, type VerifyIdToken } from "../lib/google.js";
 import { hashPassword, hashToken, newOpaqueToken, normalizeEmail, verifyPassword } from "../lib/password.js";
+import { notify } from "./notifications.js";
 import {
   clearSessionCookie,
   createSession,
@@ -196,13 +197,18 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
         user = inserted[0];
         if (user) {
           await db.insert(profiles).values({ userId: user.id }).onConflictDoNothing();
-          await sendMail(
-            env,
-            "hello",
-            { email, name: user.name },
-            welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
-            ["welcome"],
-          );
+          await notify(env, {
+            type: "user.welcome",
+            userId: user.id,
+            title: "Welcome to Sckoll",
+            body: user.role === "client" ? "Post your first project or search talent." : "Complete your profile and review your matches.",
+            link: "/profile/setup",
+            requireVerifiedEmail: false,
+            email: {
+              ...welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
+              tags: ["welcome"],
+            },
+          });
         }
       }
     }
@@ -249,13 +255,18 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
       if (!token) return reply.code(400).send({ error: "invalid_request", message: "This link is invalid or expired." });
       await db.delete(verificationTokens).where(eq(verificationTokens.id, token.id));
       const updated = (await db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, user.id)).returning())[0] ?? user;
-      await sendMail(
-        env,
-        "hello",
-        { email: user.email, name: user.name },
-        welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
-        ["welcome"],
-      );
+      await notify(env, {
+        type: "auth.verified",
+        userId: user.id,
+        title: "Email confirmed — welcome to Sckoll",
+        body: user.role === "client" ? "Post your first project or search talent." : "Complete your profile and review your matches.",
+        link: "/profile/setup",
+        requireVerifiedEmail: false,
+        email: {
+          ...welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
+          tags: ["welcome"],
+        },
+      });
       return reply.send({ ok: true, user: publicUser(updated) });
     },
   );

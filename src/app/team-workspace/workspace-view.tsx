@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Mark from "@/components/Mark";
+import NotifBell from "@/components/NotifBell";
 import { api, type Profile } from "@/lib/api";
 
 interface RoomEntry {
@@ -65,6 +66,7 @@ export default function TeamWorkspaceView() {
             <span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span>
           </Link>
           <div className="sckoll-subnav-actions">
+            <NotifBell />
             <Link href="/find-talent">Find talent</Link>
             <Link href="/post-project" className="sckoll-button sckoll-button-acid sckoll-button-small">
               Post a project

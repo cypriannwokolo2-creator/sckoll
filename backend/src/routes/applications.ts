@@ -6,7 +6,7 @@ import { applications, auditLog, opportunities, profiles, savedSearches, users }
 import type { Env } from "../env.js";
 import { computeFit } from "../lib/match.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
-import { sendBrevoEmail } from "../lib/brevo.js";
+import { notify } from "./notifications.js";
 import { applicationReceivedTemplate, applicationStatusTemplate } from "../email/templates.js";
 
 const ApplySchema = z.object({
@@ -20,30 +20,6 @@ const SavedSearchSchema = z.object({
   filters: z.record(z.string().max(200)).default({}),
   emailAlerts: z.boolean().default(false),
 });
-
-async function sendMail(
-  env: Env,
-  to: { email: string; name?: string | null },
-  content: { subject: string; html: string },
-  tags: string[],
-): Promise<void> {
-  if (!env.BREVO_API_KEY) {
-    if (env.NODE_ENV !== "production") console.log(`[mail:off] to=${to.email} subject=${content.subject}`);
-    return;
-  }
-  const { parseSender } = await import("../lib/brevo.js");
-  await sendBrevoEmail({
-    apiKey: env.BREVO_API_KEY,
-    sender: "security",
-    senderOverride: parseSender(env.BREVO_FROM_SECURITY),
-    securityFrom: env.BREVO_FROM_SECURITY,
-    helloFrom: env.BREVO_FROM_HELLO,
-    to: [{ email: to.email, ...(to.name ? { name: to.name } : {}) }],
-    subject: content.subject,
-    html: content.html,
-    tags,
-  });
-}
 
 async function logAction(env: Env, actorId: string | undefined, action: string, targetType: string, targetId: string) {
   try {
@@ -106,20 +82,23 @@ export async function registerApplicationRoutes(app: FastifyInstance, env: Env):
       if (!inserted) return reply.code(500).send({ error: "server_error", message: "Could not submit your application." });
       await logAction(env, user.id, "application.create", "application", inserted.id);
 
-      const client = (await db.select().from(users).where(eq(users.id, opp.clientId)).limit(1))[0];
-      if (client) {
-        await sendMail(
-          env,
-          { email: client.email, name: client.name },
-          applicationReceivedTemplate({
-            clientName: client.name,
+      await notify(env, {
+        actorId: user.id,
+        type: "application.received",
+        userId: opp.clientId,
+        title: `New application: ${opp.title}`,
+        body: `${user.name ?? "A candidate"} applied${parsed.data.bidAmount ? ` · bid $${parsed.data.bidAmount.toLocaleString()}` : ""}.`,
+        link: `/find-work/${opp.id}`,
+        email: {
+          ...applicationReceivedTemplate({
+            clientName: undefined,
             talentName: user.name,
             oppTitle: opp.title,
             actionUrl: `${env.SITE_URL.replace(/\/$/, "")}/find-work/${opp.id}`,
           }),
-          ["application-received"],
-        );
-      }
+          tags: ["application-received"],
+        },
+      });
       return reply.code(201).send({ ok: true, application: inserted });
     },
   );
@@ -214,7 +193,6 @@ export async function registerApplicationRoutes(app: FastifyInstance, env: Env):
       )[0];
       await logAction(env, user.id, `application.${parsed.data.status}`, "application", id);
 
-      const talent = (await db.select().from(users).where(eq(users.id, row.talentId)).limit(1))[0];
       if (parsed.data.status === "accepted") {
         // Close the opportunity and reject every other application.
         await db.update(opportunities).set({ status: "closed", updatedAt: new Date() }).where(eq(opportunities.id, opp.id));
@@ -229,35 +207,47 @@ export async function registerApplicationRoutes(app: FastifyInstance, env: Env):
         for (const other of [...others, ...shortlisted]) {
           if (other.id === id) continue;
           await db.update(applications).set({ status: "rejected", updatedAt: new Date() }).where(eq(applications.id, other.id));
-          const otherTalent = (await db.select().from(users).where(eq(users.id, other.talentId)).limit(1))[0];
-          if (otherTalent) {
-            await sendMail(
-              env,
-              { email: otherTalent.email, name: otherTalent.name },
-              applicationStatusTemplate({
-                talentName: otherTalent.name,
+          await notify(env, {
+            actorId: user.id,
+            type: "application.status",
+            userId: other.talentId,
+            title: `Update on your application: ${opp.title}`,
+            body: "This one did not move forward. Your profile stays live for the next match.",
+            link: "/pipeline",
+            email: {
+              ...applicationStatusTemplate({
+                talentName: undefined,
                 oppTitle: opp.title,
                 status: "rejected",
                 actionUrl: `${env.SITE_URL.replace(/\/$/, "")}/pipeline`,
               }),
-              ["application-status"],
-            );
-          }
+              tags: ["application-status"],
+            },
+          });
         }
       }
-      if (talent) {
-        await sendMail(
-          env,
-          { email: talent.email, name: talent.name },
-          applicationStatusTemplate({
-            talentName: talent.name,
+      await notify(env, {
+        actorId: user.id,
+        type: "application.status",
+        userId: row.talentId,
+        title: `Update on your application: ${opp.title}`,
+        body:
+          parsed.data.status === "accepted"
+            ? "You were accepted. Check your inbox for next steps."
+            : parsed.data.status === "shortlisted"
+              ? "You were shortlisted — keep an eye on next steps."
+              : "Status update on your application.",
+        link: "/pipeline",
+        email: {
+          ...applicationStatusTemplate({
+            talentName: undefined,
             oppTitle: opp.title,
             status: parsed.data.status,
             actionUrl: `${env.SITE_URL.replace(/\/$/, "")}/pipeline`,
           }),
-          ["application-status"],
-        );
-      }
+          tags: ["application-status"],
+        },
+      });
       return reply.send({ ok: true, application: updated });
     },
   );

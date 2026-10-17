@@ -155,6 +155,9 @@ export default function ProfileView() {
               <Link href="/saved-searches" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
                 Saved searches
               </Link>
+              <Link href="/notifications" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
+                Notifications
+              </Link>
               {user.role !== "talent" && (
                 <Link href="/post-project" className="sckoll-social-button" style={{ textDecoration: "none", justifyContent: "center" }}>
                   Post a project
