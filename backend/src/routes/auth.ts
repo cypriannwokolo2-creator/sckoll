@@ -6,7 +6,7 @@ import { passwordResetTokens, profiles, users, verificationTokens } from "../db/
 import type { Env } from "../env.js";
 import { resolveSender, sendBrevoEmail } from "../lib/brevo.js";
 import { createGoogleVerifier, type VerifyIdToken } from "../lib/google.js";
-import { hashPassword, newOpaqueToken, normalizeEmail, sha256Hex, verifyPassword } from "../lib/password.js";
+import { hashPassword, hashToken, newOpaqueToken, normalizeEmail, verifyPassword } from "../lib/password.js";
 import {
   clearSessionCookie,
   createSession,
@@ -87,7 +87,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
   }));
 
   // POST /v1/auth/signup
-  app.post("/v1/auth/signup", async (request, reply) => {
+  app.post("/v1/auth/signup", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = SignupSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_request", message: parsed.error.issues[0]?.message ?? "Invalid input." });
@@ -111,7 +111,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
     const rawToken = newOpaqueToken();
     await db.insert(verificationTokens).values({
       userId: user.id,
-      tokenHash: sha256Hex(rawToken),
+      tokenHash: hashToken(env.AUTH_SECRET, rawToken),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
     const actionUrl = `${env.SITE_URL.replace(/\/$/, "")}/verify?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
@@ -123,7 +123,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
   });
 
   // POST /v1/auth/login
-  app.post("/v1/auth/login", async (request, reply) => {
+  app.post("/v1/auth/login", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = LoginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_request", message: "Invalid email or password." });
@@ -142,7 +142,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
   });
 
   // POST /v1/auth/google
-  app.post("/v1/auth/google", async (request, reply) => {
+  app.post("/v1/auth/google", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
     if (!googleVerifier) {
       return reply.code(503).send({ error: "google_disabled", message: "Google sign-in is not configured." });
     }
@@ -162,7 +162,9 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
     if (!user) {
       const byEmail = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
       if (byEmail) {
-        if (!byEmail.googleSub) {
+        // Only auto-link a Google identity when Google confirms the email.
+        // An unverified provider email must never attach to an existing account.
+        if (!byEmail.googleSub && profile.emailVerified) {
           const updated = await db
             .update(users)
             .set({
@@ -174,6 +176,9 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
             .where(eq(users.id, byEmail.id))
             .returning();
           user = updated[0] ?? byEmail;
+        } else if (!byEmail.googleSub) {
+          // Same email, but Google has not verified it: refuse to link or sign in.
+          return reply.code(401).send({ error: "google_failed", message: "Google sign-in failed." });
         } else {
           user = byEmail;
         }
@@ -226,6 +231,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
   // POST /v1/auth/verify
   app.post(
     "/v1/auth/verify",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
       const parsed = z.object({ token: z.string().min(1), email: z.string().email() }).safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "invalid_request", message: "Invalid verification link." });
@@ -237,7 +243,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
         await db
           .select()
           .from(verificationTokens)
-          .where(and(eq(verificationTokens.userId, user.id), eq(verificationTokens.tokenHash, sha256Hex(parsed.data.token)), gt(verificationTokens.expiresAt, new Date())))
+          .where(and(eq(verificationTokens.userId, user.id), eq(verificationTokens.tokenHash, hashToken(env.AUTH_SECRET, parsed.data.token)), gt(verificationTokens.expiresAt, new Date())))
           .limit(1)
       )[0];
       if (!token) return reply.code(400).send({ error: "invalid_request", message: "This link is invalid or expired." });
@@ -255,7 +261,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
   );
 
   // POST /v1/auth/forgot + /v1/auth/reset
-  app.post("/v1/auth/forgot", async (request, reply) => {
+  app.post("/v1/auth/forgot", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = z.object({ email: z.string().email() }).safeParse(request.body);
     if (!parsed.success) return reply.send({ ok: true });
     const email = normalizeEmail(parsed.data.email);
@@ -265,7 +271,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
       const rawToken = newOpaqueToken();
       await db.insert(passwordResetTokens).values({
         userId: user.id,
-        tokenHash: sha256Hex(rawToken),
+        tokenHash: hashToken(env.AUTH_SECRET, rawToken),
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       });
       const actionUrl = `${env.SITE_URL.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`;
@@ -274,7 +280,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
     return reply.send({ ok: true, message: "If that email exists, a reset link is on its way." });
   });
 
-  app.post("/v1/auth/reset", async (request, reply) => {
+  app.post("/v1/auth/reset", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = z
       .object({ token: z.string().min(1), email: z.string().email(), password: z.string().min(8).max(128) })
       .safeParse(request.body);
@@ -290,7 +296,7 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
         .where(
           and(
             eq(passwordResetTokens.userId, user.id),
-            eq(passwordResetTokens.tokenHash, sha256Hex(parsed.data.token)),
+            eq(passwordResetTokens.tokenHash, hashToken(env.AUTH_SECRET, parsed.data.token)),
             gt(passwordResetTokens.expiresAt, new Date()),
             isNull(passwordResetTokens.usedAt),
           ),

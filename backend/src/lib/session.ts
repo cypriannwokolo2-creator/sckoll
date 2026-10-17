@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { and, eq, gt } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { sessions, users, type User } from "../db/schema.js";
-import { sha256Hex } from "./password.js";
+import { hashToken } from "./password.js";
 import type { Env } from "../env.js";
 
 export const SESSION_COOKIE = "sckoll-session";
@@ -38,7 +38,7 @@ export async function createSession(env: Env, userId: string): Promise<{ token: 
   const token = newSessionToken();
   const db = getDb(env.DATABASE_URL);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
-  await db.insert(sessions).values({ userId, tokenHash: sha256Hex(token), expiresAt });
+  await db.insert(sessions).values({ userId, tokenHash: hashToken(env.AUTH_SECRET, token), expiresAt });
   return { token, expiresAt };
 }
 
@@ -51,7 +51,7 @@ export async function resolveSessionUser(env: Env, request: FastifyRequest): Pro
       .select({ user: users })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
-      .where(and(eq(sessions.tokenHash, sha256Hex(token)), gt(sessions.expiresAt, new Date())))
+      .where(and(eq(sessions.tokenHash, hashToken(env.AUTH_SECRET, token)), gt(sessions.expiresAt, new Date())))
       .limit(1);
     return rows[0]?.user;
   } catch {
@@ -64,7 +64,7 @@ export async function destroySession(env: Env, request: FastifyRequest): Promise
   if (!token) return;
   try {
     const db = getDb(env.DATABASE_URL);
-    await db.delete(sessions).where(eq(sessions.tokenHash, sha256Hex(token)));
+    await db.delete(sessions).where(eq(sessions.tokenHash, hashToken(env.AUTH_SECRET, token)));
   } catch {
     // best effort
   }

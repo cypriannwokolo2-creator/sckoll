@@ -21,6 +21,7 @@ services:
       - traefik.docker.network=edge
       - traefik.http.routers.sckoll-api.entrypoints=websecure
       - traefik.http.routers.sckoll-api.rule=Host(`api.sckoll.com`)
+      - traefik.http.routers.sckoll-api.middlewares=sec-headers@file
       - traefik.http.routers.sckoll-api.service=sckoll-api
       - traefik.http.routers.sckoll-api.tls.certresolver=letsencrypt
       - traefik.http.services.sckoll-api.loadbalancer.server.port=8110

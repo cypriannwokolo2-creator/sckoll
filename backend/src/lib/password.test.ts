@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashPassword, newOpaqueToken, normalizeEmail, sha256Hex, verifyPassword } from "./password.js";
+import { hashPassword, hashToken, newOpaqueToken, normalizeEmail, sha256Hex, verifyPassword } from "./password.js";
 
 describe("password + tokens", () => {
   it("hashes and verifies, rejects wrong passwords", async () => {
@@ -19,5 +19,12 @@ describe("password + tokens", () => {
     expect(a).not.toBe(b);
     expect(sha256Hex(a)).toHaveLength(64);
     expect(sha256Hex(a)).toBe(sha256Hex(a));
+  });
+
+  it("peppers token hashes with the secret", () => {
+    const token = newOpaqueToken();
+    expect(hashToken("secret-a", token)).toHaveLength(64);
+    expect(hashToken("secret-a", token)).toBe(hashToken("secret-a", token));
+    expect(hashToken("secret-a", token)).not.toBe(hashToken("secret-b", token));
   });
 });

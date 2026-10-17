@@ -25,6 +25,15 @@ export function sha256Hex(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+/**
+ * Peppered token hash for sessions + single-use tokens. Binds stored hashes
+ * to AUTH_SECRET so a DB dump alone is not enough to offline-match tokens,
+ * and secret rotation invalidates every outstanding token at once.
+ */
+export function hashToken(secret: string, token: string): string {
+  return createHash("sha256").update(`${secret}:${token}`, "utf8").digest("hex");
+}
+
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
