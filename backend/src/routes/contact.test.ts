@@ -3,12 +3,13 @@ import type { FastifyInstance } from "fastify";
 import { buildServer } from "../index.js";
 import type { Env } from "../env.js";
 import { loadEnv } from "../env.js";
-import { testDatabaseUrl } from "../test-setup.js";
+import { ensureTestDatabase, testDatabaseUrl } from "../test-setup.js";
 
 describe("contact route", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
+    await ensureTestDatabase(testDatabaseUrl());
     const env: Env = {
       ...loadEnv(),
       DATABASE_URL: testDatabaseUrl(),

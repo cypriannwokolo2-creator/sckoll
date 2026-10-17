@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
@@ -7,7 +6,7 @@ import { applications, auditLog, contractFlags, contracts, messages, milestones,
 import { buildServer } from "../index.js";
 import type { Env } from "../env.js";
 import { loadEnv } from "../env.js";
-import { testDatabaseUrl } from "../test-setup.js";
+import { pushSchema, testDatabaseUrl } from "../test-setup.js";
 
 const DB = "sckoll_test_contracts";
 
@@ -69,11 +68,7 @@ describe("contract routes", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    execSync("npx drizzle-kit push", {
-      cwd: new URL("../../", import.meta.url).pathname,
-      env: { ...process.env, DATABASE_URL: testDatabaseUrl(DB) },
-      stdio: "pipe",
-    });
+    await pushSchema(testDatabaseUrl(DB));
     ({ app } = await buildServer({ ...loadEnv(), ...TEST_ENV }));
   }, 120000);
 

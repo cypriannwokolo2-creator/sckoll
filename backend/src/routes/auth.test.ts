@@ -1,12 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { passwordResetTokens, profiles, sessions, users, verificationTokens } from "../db/schema.js";
 import { buildServer } from "../index.js";
 import { loadEnv, type Env } from "../env.js";
-import { testDatabaseUrl } from "../test-setup.js";
+import { pushSchema, testDatabaseUrl } from "../test-setup.js";
 import { hashToken, newOpaqueToken } from "../lib/password.js";
 import type { VerifyIdToken } from "../lib/google.js";
 
@@ -39,11 +38,7 @@ describe("auth routes", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    execSync("npx drizzle-kit push", {
-      cwd: new URL("../../", import.meta.url).pathname,
-      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
-      stdio: "pipe",
-    });
+    await pushSchema(TEST_DATABASE_URL);
     ({ app } = await buildServer(TEST_ENV));
   }, 120000);
 
