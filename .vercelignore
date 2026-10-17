@@ -1,0 +1,6 @@
+# Keep server-only code out of Vercel uploads. The frontend never imports it.
+backend/
+docker-compose.yml
+docker-compose.*.yml
+.env
+.env.local
