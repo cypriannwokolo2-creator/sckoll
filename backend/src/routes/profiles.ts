@@ -3,6 +3,8 @@ import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { profiles, reviews, users } from "../db/schema.js";
+import { cosine, embedTexts, getEmbeddings, localEmbed, upsertEmbedding, profileText, blendFit, vectorFit } from "../lib/embeddings.js";
+import { computeFit } from "../lib/match.js";
 import type { Env } from "../env.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
 
@@ -40,6 +42,9 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
       await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, user.id));
     }
     const existing = (await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1))[0];
+    const mergedSkills = parsed.data.skills ?? existing?.skills ?? [];
+    const mergedHeadline = parsed.data.headline ?? existing?.headline ?? undefined;
+    const mergedBio = parsed.data.bio ?? existing?.bio ?? undefined;
     let profile;
     if (existing) {
       profile = (
@@ -47,6 +52,12 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
       )[0];
     } else {
       profile = (await db.insert(profiles).values({ userId: user.id, ...profileFields }).returning())[0];
+    }
+    try {
+      const [vec] = await embedTexts([profileText({ headline: mergedHeadline, bio: mergedBio, skills: mergedSkills })]);
+      if (vec) await upsertEmbedding(db, "profile", user.id, vec);
+    } catch {
+      // embeddings are best-effort
     }
     return reply.send({ ok: true, profile });
   });
@@ -68,6 +79,8 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
       .from(users)
       .innerJoin(profiles, eq(profiles.userId, users.id))
       .limit(200);
+    const queryVec = q || wanted.length > 0 ? localEmbed(`${q} ${wanted.join(" ")}`) : null;
+    const talentVecs = await getEmbeddings(db, "profile", rows.map((r) => r.user.id));
     const scored = rows
       .filter((r) => r.user.id !== user.id)
       .filter((r) => {
@@ -89,6 +102,16 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
         } else if (skills.length > 0) {
           score += 0.1;
         }
+        const rules100 = Math.round(Math.min(score, 0.99) * 100);
+        const stored = talentVecs.get(r.user.id);
+        const vector = queryVec && stored ? vectorFit(cosine(queryVec, stored)) : null;
+        const fit = vector !== null ? blendFit(rules100, vector) : rules100;
+        const reasons: string[] = [];
+        for (const w of wanted) {
+          const hit = skills.find((x) => x.includes(w));
+          if (hit && reasons.length < 3) reasons.push(hit);
+        }
+        if (q && hay.includes(q.toLowerCase())) reasons.push(`matches "${q.slice(0, 40)}"`);
         return {
           id: r.user.id,
           name: r.user.name,
@@ -99,12 +122,33 @@ export async function registerProfileRoutes(app: FastifyInstance, env: Env): Pro
           availability: r.profile.availability,
           hourlyRate: r.profile.hourlyRate,
           avatarUrl: r.profile.avatarUrl,
-          fit: Math.round(Math.min(score, 0.99) * 100),
+          fit,
+          fitRules: rules100,
+          fitVector: vector,
+          reasons: reasons.slice(0, 4),
         };
       })
       .filter((r) => (q || wanted.length > 0 ? r.fit >= 60 : true))
       .sort((a, b) => b.fit - a.fit);
     return reply.send({ ok: true, results: scored.slice(offset, offset + limit), total: scored.length });
+  });
+
+  // GET /v1/profiles — public index for sitemaps/SEO. Deliberately minimal: id, display name
+  // and timestamps only. Everything else (bio, rate, links) stays on the public profile page,
+  // and emails/payout data are never selectable here.
+  app.get("/v1/profiles", async (request, reply) => {
+    const q = (request.query as Record<string, string | undefined>) ?? {};
+    const limit = Math.min(Math.max(parseInt(q.limit ?? "50", 10) || 50, 1), 50);
+    const offset = Math.max(parseInt(q.offset ?? "0", 10) || 0, 0);
+    const db = getDb(env.DATABASE_URL);
+    const rows = await db
+      .select({ id: users.id, name: users.name, updatedAt: profiles.updatedAt })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.userId, users.id))
+      .orderBy(desc(profiles.updatedAt))
+      .limit(limit)
+      .offset(offset);
+    return reply.send({ ok: true, profiles: rows, hasMore: rows.length === limit });
   });
 
   // GET /v1/profiles/:id — public safe view (no email, no internal flags)

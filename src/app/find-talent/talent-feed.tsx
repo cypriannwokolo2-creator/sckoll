@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
-import { ApiError, api, type TalentResult } from "@/lib/api";
+import { ApiError, api, trackMatchEvent, type TalentResult } from "@/lib/api";
 
 function TalentFeed() {
   const router = useRouter();
@@ -106,8 +106,27 @@ function TalentFeed() {
                 {(t.availability || t.hourlyRate) && (
                   <span style={{ marginTop: "0.5rem" }}>{[t.availability, t.hourlyRate].filter(Boolean).join(" · ")}</span>
                 )}
+                {t.reasons && t.reasons.length > 0 && (
+                  <span style={{ marginTop: "0.4rem", color: "#6d4df5" }}>
+                    Why: {t.reasons.join(" · ")}
+                  </span>
+                )}
                 <div className="sckoll-sub-actions" style={{ marginTop: "1rem" }}>
-                  <Link href={`/profile/${t.id}`}>View profile</Link>
+                  <Link
+                    href={`/profile/${t.id}`}
+                    onClick={() =>
+                      trackMatchEvent({
+                        eventType: "click",
+                        targetType: "talent",
+                        targetId: t.id,
+                        scoreRules: t.fitRules ?? undefined,
+                        scoreVector: t.fitVector ?? undefined,
+                        finalScore: t.fit,
+                      })
+                    }
+                  >
+                    View profile
+                  </Link>
                   {shortlisted.has(t.id) ? (
                     <span style={{ fontSize: "0.78rem", fontWeight: 800 }}>Shortlisted ✓</span>
                   ) : (

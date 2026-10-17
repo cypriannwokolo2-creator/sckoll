@@ -168,7 +168,35 @@ export const applications = pgTable(
   ],
 );
 
-/** Talent-saved searches with email alert toggle (digest in Phase 6). */
+/** Vector embeddings for semantic matching (pgvector). Provider-swappable; local deterministic embedder ships as v1. */
+export const embeddings = pgTable(
+  "embeddings",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    ownerType: text("owner_type", { enum: ["opportunity", "profile"] }).notNull(),
+    ownerId: uuid("owner_id").notNull(),
+    embedding: text("embedding").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("embeddings_owner_unique").on(t.ownerType, t.ownerId)],
+);
+
+/** Match telemetry: what was shown/clicked/applied with score components. Feeds future weight tuning. */
+export const matchEvents = pgTable(
+  "match_events",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    eventType: text("event_type", { enum: ["view", "click", "apply"] }).notNull(),
+    targetType: text("target_type", { enum: ["opportunity", "talent"] }).notNull(),
+    targetId: text("target_id").notNull(),
+    scoreRules: integer("score_rules"),
+    scoreVector: integer("score_vector"),
+    finalScore: integer("final_score"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("match_events_user_idx").on(t.userId, t.createdAt)],
+);
 export const savedSearches = pgTable("saved_searches", {
   id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: uuid("user_id")

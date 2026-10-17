@@ -2,7 +2,9 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { auditLog, opportunities, type Opportunity } from "../db/schema.js";
+import { auditLog, opportunities, profiles, type Opportunity } from "../db/schema.js";
+import { cosine, embedTexts, getEmbeddings, localEmbed, upsertEmbedding, opportunityText, profileText, blendFit, vectorFit } from "../lib/embeddings.js";
+import { computeFit } from "../lib/match.js";
 import type { Env } from "../env.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
 
@@ -78,6 +80,12 @@ export async function registerOpportunityRoutes(app: FastifyInstance, env: Env):
       )[0];
       if (!inserted) return reply.code(500).send({ error: "server_error", message: "Could not create the opportunity." });
       await logAction(env, user.id, "opportunity.create", inserted.id);
+      try {
+        const [vec] = await embedTexts([opportunityText({ title: inserted.title, description: inserted.description, skills: inserted.skills ?? [] })]);
+        if (vec) await upsertEmbedding(db, "opportunity", inserted.id, vec);
+      } catch {
+        // embeddings are best-effort
+      }
       return reply.code(201).send({ ok: true, opportunity: publicOpportunity(inserted) });
     },
   );
@@ -139,9 +147,38 @@ export async function registerOpportunityRoutes(app: FastifyInstance, env: Env):
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     const last = page[page.length - 1];
+
+    // Hybrid re-rank (page-local): 40% rules + 60% semantic. Pagination stays
+    // cursor-stable; blending only reorders within the fetched page.
+    let viewerSkills: string[] = [];
+    let viewerVec: number[] | null = null;
+    if (user) {
+      const vp = (await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1))[0];
+      viewerSkills = (vp?.skills ?? []).map((x: string) => x.toLowerCase());
+      const vm = await getEmbeddings(db, "profile", [user.id]);
+      viewerVec = vm.get(user.id) ?? (vp ? localEmbed(profileText({ headline: vp.headline, bio: vp.bio, skills: vp.skills ?? [] })) : null);
+    }
+    const needVec = search.trim().length > 0 || viewerVec !== null;
+    const vecMap = needVec ? await getEmbeddings(db, "opportunity", page.map((r) => r.id)) : new Map<string, number[]>();
+    const queryVec = search.trim().length > 0 ? localEmbed(search) : null;
+    const ranked = page.map((row) => {
+      const oppSkills = (row.skills ?? []) as string[];
+      const rules = user ? computeFit(viewerSkills, oppSkills) : search ? 75 : 50;
+      const anchor = queryVec ?? viewerVec;
+      const stored = vecMap.get(row.id);
+      let vector: number | null = null;
+      if (anchor && stored) vector = vectorFit(cosine(anchor, stored));
+      const fit = vector !== null ? blendFit(rules, vector) : rules;
+      const reasons: string[] = [];
+      const shared = oppSkills.filter((x: string) => viewerSkills.some((m) => m.includes(x.toLowerCase()) || x.toLowerCase().includes(m))).slice(0, 3);
+      for (const x of shared) reasons.push(x);
+      if (search && `${row.title} ${row.description}`.toLowerCase().includes(search.toLowerCase())) reasons.push(`matches "${search.slice(0, 40)}"`);
+      return { ...publicOpportunity(row), fit, fitRules: rules, fitVector: vector, reasons: reasons.slice(0, 4) };
+    });
+    ranked.sort((a, b) => b.fit - a.fit);
     return reply.send({
       ok: true,
-      opportunities: page.map(publicOpportunity),
+      opportunities: ranked,
       nextCursor: hasMore && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
     });
   });

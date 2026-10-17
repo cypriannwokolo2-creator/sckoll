@@ -376,6 +376,29 @@ export async function registerContractRoutes(app: FastifyInstance, env: Env): Pr
     },
   );
 
+  // GET /v1/success-stories — public proof from completed, reviewed contracts
+  app.get("/v1/success-stories", async (_request, reply) => {
+    const db = getDb(env.DATABASE_URL);
+    const rows = await db
+      .select({ review: reviews, opportunity: opportunities })
+      .from(reviews)
+      .innerJoin(contracts, eq(reviews.contractId, contracts.id))
+      .innerJoin(opportunities, eq(contracts.opportunityId, opportunities.id))
+      .where(and(eq(contracts.status, "completed"), eq(reviews.stars, 5)))
+      .orderBy(desc(reviews.createdAt))
+      .limit(12);
+    return reply.send({
+      ok: true,
+      stories: rows.map((r) => ({
+        opportunityTitle: r.opportunity.title,
+        category: r.opportunity.category,
+        stars: r.review.stars,
+        text: r.review.text,
+        completedAt: r.review.createdAt,
+      })),
+    });
+  });
+
   // POST /v1/contracts/:id/flag — dispute queue stub
   app.post("/v1/contracts/:id/flag", async (request, reply) => {
     const user = await resolveSessionUser(env, request);

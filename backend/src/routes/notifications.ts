@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { notificationPrefs, notifications, opportunities, savedSearches, users } from "../db/schema.js";
+import { matchEvents, notificationPrefs, notifications, opportunities, savedSearches, users } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { emit, type AppEvent } from "../lib/events.js";
 import { parseSender, sendBrevoEmail } from "../lib/brevo.js";
@@ -231,6 +231,33 @@ export async function registerNotificationRoutes(app: FastifyInstance, env: Env)
         sent++;
       }
       return reply.send({ ok: true, digests: sent });
+    },
+  );
+
+  // POST /v1/match-events — telemetry for ranking tuning (view/click/apply)
+  app.post(
+    "/v1/match-events",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const user = await resolveSessionUser(env, request);
+      if (!requireAuth(reply, user)) return;
+      const parsed = z
+        .object({
+          eventType: z.enum(["view", "click", "apply"]),
+          targetType: z.enum(["opportunity", "talent"]),
+          targetId: z.string().min(1).max(100),
+          scoreRules: z.number().int().min(0).max(100).optional(),
+          scoreVector: z.number().int().min(0).max(100).optional(),
+          finalScore: z.number().int().min(0).max(100).optional(),
+        })
+        .safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "invalid_request", message: "Invalid input." });
+      }
+      await getDb(env.DATABASE_URL)
+        .insert(matchEvents)
+        .values({ userId: user.id, ...parsed.data });
+      return reply.send({ ok: true });
     },
   );
 }

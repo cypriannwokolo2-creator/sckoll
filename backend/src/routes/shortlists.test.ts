@@ -140,6 +140,16 @@ describe("shortlist + public profile routes", () => {
     const missing = await app.inject({ method: "GET", url: "/v1/profiles/00000000-0000-0000-0000-000000000000" });
     expect(missing.statusCode).toBe(404);
 
+    // sitemap index: public, minimal fields, never leaks contact or payout data
+    const index = await app.inject({ method: "GET", url: "/v1/profiles?limit=50" });
+    expect(index.statusCode).toBe(200);
+    const listed = index.json().profiles as Array<Record<string, unknown>>;
+    expect(listed.some((p) => p.id === talent.id)).toBe(true);
+    expect(JSON.stringify(index.json())).not.toContain("pub@sckoll.com");
+    expect(listed[0]).not.toHaveProperty("bio");
+    expect(listed[0]).not.toHaveProperty("payoutAccount");
+    expect(listed[0]).toHaveProperty("updatedAt");
+
     const filtered = await app.inject({
       method: "GET",
       url: "/v1/talent/search?skills=react&availability=immediate&rate_max=50",

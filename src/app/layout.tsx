@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     "get paid",
   ],
   alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   openGraph: {
     title: "Sckoll — Find the right work. Find the right people.",
     description:

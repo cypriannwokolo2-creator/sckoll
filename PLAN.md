@@ -37,12 +37,12 @@ docker compose ps                                            # stack healthy
 | 6 | Notifications: event bus, inbox, digest | ✅ shipped `85792da` |
 | 7 | Contracts: milestones, messaging, reviews | ✅ shipped `6fb9e1e` |
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
-| **9** | **Growth: semantic matching, telemetry, SEO** | **🟡 code complete, all gates green, NOT committed/pushed/deployed** |
+| **9** | **Growth: semantic matching, telemetry, SEO** | **🟡 committed to `feat/phase9-growth`; gates green; push/deploy pending** |
 | 10–20 | Forward plan (below) | ⬜ not started |
 
 ---
 
-# PART A — Shipped (reconstructed, all `[x]`)
+# PART A — Reconstructed history (phases 1–8 shipped; phase 9 completed on this branch)
 
 ## Phase 1 — Frontend defects ✅
 - [x] Copy, forms, links, metadata, contact-page fixes
@@ -86,20 +86,20 @@ docker compose ps                                            # stack healthy
 - [x] `POST /v1/webhooks/paystack` with signature verification, fail-closed when key absent
 - [x] Per-milestone fund/release, receipts, `/v1/contracts/:id/payments`
 
-## Phase 9 — Growth (code complete, **not committed**) 🟡
+## Phase 9 — Growth (committed; not deployed) 🟡
 - [x] `embeddings` + `match_events` migration `0007` (applied to dev DB)
 - [x] Local 384-dim embedder behind a provider interface (`backend/src/lib/embeddings.ts`)
 - [x] Hybrid re-rank on opportunities + talent search: 40% rules / 60% vector
 - [x] Fit breakdown surfaced in UI: `% FIT` + `Why: …` reasons
 - [x] `POST /v1/match-events` telemetry (view/click/apply) + `trackMatchEvent()` client
-- [x] `db:embed` backfill script (ran: 30 opportunities, 1 profile)
+- [x] `db:embed` backfill script (ran: 30 opportunities, 2 profiles)
 - [x] SEO routes: `/robots.txt`, `/sitemap.xml`, `/status`, `/success-stories`
-- [x] Gates green: backend lint/types/47 tests, frontend lint/types/`next build`
-- [ ] **Commit + push `feat/phase9-growth`, merge, deploy, verify live**
-- [ ] Sitemap: add dynamic `/find-work/[id]` + `/profile/[id]` URLs from the API
-- [ ] Fire `click` match-event from feed cards (type exists end-to-end, never emitted)
-- [ ] Remove dead `metadata.robots` export from `src/app/robots.ts`
-- [ ] Seed a second profile so talent-side ranking is actually exercised
+- [x] Sitemap: dynamic `/find-work/[id]` + `/profile/[id]` URLs from the API (new `GET /v1/profiles` index, capped 300/collection, ISR daily; verified 55 URLs rendered)
+- [x] Fire `click` match-event from feed cards (work feed + talent feed)
+- [x] Remove dead `metadata.robots` export — robots intent moved to `layout.tsx`
+- [x] Seed a second profile (`db:seed` → demo talent, idempotent, embedded on creation)
+- [x] **Commit Phase 9 to `feat/phase9-growth` (this commit)** — gates: backend lint/types/47 tests, frontend lint/types/`next build`
+- [ ] **Push branch → merge to master → deploy → verify `/sitemap.xml` + `/robots.txt` are 200 in prod**
 
 ---
 

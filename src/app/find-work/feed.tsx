@@ -5,12 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
-import { ApiError, api, budgetLabel, fitEstimate, type Opportunity } from "@/lib/api";
+import { ApiError, api, budgetLabel, fitEstimate, trackMatchEvent, type MatchScore, type Opportunity } from "@/lib/api";
 
 const TYPES = ["project", "role", "contract"];
 
 function FeedInner({ q, type, category }: { q: string; type: string; category: string }) {
-  const [opps, setOpps] = useState<Opportunity[]>([]);
+  const [opps, setOpps] = useState<Array<Opportunity & MatchScore>>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -133,7 +133,26 @@ function FeedInner({ q, type, category }: { q: string; type: string; category: s
                     {budgetLabel(opp)}
                     {opp.remote ? " · Remote" : opp.location ? ` · ${opp.location}` : ""}
                   </span>
-                  <Link href={`/find-work/${opp.id}`}>View details</Link>
+                  {opp.reasons && opp.reasons.length > 0 && (
+                    <span style={{ marginTop: "0.4rem", color: "var(--acid)", filter: "brightness(0.75)" }}>
+                      Why: {opp.reasons.join(" · ")}
+                    </span>
+                  )}
+                  <Link
+                    href={`/find-work/${opp.id}`}
+                    onClick={() =>
+                      trackMatchEvent({
+                        eventType: "click",
+                        targetType: "opportunity",
+                        targetId: opp.id,
+                        scoreRules: opp.fitRules ?? undefined,
+                        scoreVector: opp.fitVector ?? undefined,
+                        finalScore: opp.fit ?? undefined,
+                      })
+                    }
+                  >
+                    View details
+                  </Link>
                 </article>
               );
             })}

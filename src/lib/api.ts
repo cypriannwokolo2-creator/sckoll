@@ -52,6 +52,13 @@ export interface Opportunity {
   updatedAt: string;
 }
 
+export interface MatchScore {
+  fit?: number | null;
+  fitRules?: number | null;
+  fitVector?: number | null;
+  reasons?: string[];
+}
+
 export interface OpportunityFilters {
   q?: string;
   type?: string;
@@ -127,11 +134,11 @@ export const api = {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
     const qs = params.toString();
-    return request<{ ok: boolean; opportunities: Opportunity[]; nextCursor: string | null }>(
+    return request<{ ok: boolean; opportunities: Array<Opportunity & MatchScore>; nextCursor: string | null }>(
       `/v1/opportunities${qs ? `?${qs}` : ""}`,
     );
   },
-  opportunity: (id: string) => request<{ ok: boolean; opportunity: Opportunity }>(`/v1/opportunities/${id}`),
+  opportunity: (id: string) => request<{ ok: boolean; opportunity: Opportunity & MatchScore }>(`/v1/opportunities/${id}`),
   postOpportunity: (input: {
     category: string;
     type: string;
@@ -363,6 +370,34 @@ export interface TalentResult {
   hourlyRate: string | null;
   avatarUrl: string | null;
   fit: number;
+  fitRules?: number | null;
+  fitVector?: number | null;
+  reasons?: string[];
+}
+
+export function trackMatchEvent(input: {
+  eventType: "view" | "click" | "apply";
+  targetType: "opportunity" | "talent";
+  targetId: string;
+  scoreRules?: number;
+  scoreVector?: number | null;
+  finalScore?: number;
+}): void {
+  try {
+    const body = JSON.stringify({
+      ...input,
+      ...(input.scoreVector == null ? {} : { scoreVector: input.scoreVector }),
+    });
+    void fetch(`${API_URL}/v1/match-events`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body,
+      keepalive: true,
+    });
+  } catch {
+    // telemetry never blocks UX
+  }
 }
 
 export interface PublicProfile {

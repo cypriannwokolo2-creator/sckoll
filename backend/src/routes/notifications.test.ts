@@ -3,7 +3,7 @@ import { execSync } from "node:child_process";
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { applications, auditLog, notificationPrefs, notifications, opportunities, passwordResetTokens, profiles, savedSearches, sessions, shortlists, users, verificationTokens } from "../db/schema.js";
+import { applications, auditLog, matchEvents, notificationPrefs, notifications, opportunities, passwordResetTokens, profiles, savedSearches, sessions, shortlists, users, verificationTokens } from "../db/schema.js";
 import { buildServer } from "../index.js";
 import type { Env } from "../env.js";
 import { loadEnv } from "../env.js";
@@ -23,6 +23,7 @@ const TEST_ENV: Partial<Env> = {
 async function truncate() {
   const db = getDb(TEST_ENV.DATABASE_URL!);
   await db.delete(auditLog);
+  await db.delete(matchEvents);
   await db.delete(applications);
   await db.delete(shortlists);
   await db.delete(savedSearches);
@@ -169,5 +170,24 @@ describe("notification routes", () => {
     expect(prefs.json().prefs.emailEnabled).toBe(false);
     const forged = await app.inject({ method: "GET", url: "/v1/notifications/unsubscribe?token=nope&email=un@sckoll.com" });
     expect(forged.statusCode).toBe(400);
+  });
+
+  it("records match telemetry and rejects bad payloads", async () => {
+    const anon = await app.inject({ method: "POST", url: "/v1/match-events", payload: { eventType: "view", targetType: "opportunity", targetId: "x" } });
+    expect(anon.statusCode).toBe(401);
+    const { cookie } = await signupAs(app, "mm@sckoll.com", "talent");
+    const bad = await app.inject({ method: "POST", url: "/v1/match-events", headers: { cookie }, payload: { eventType: "nope", targetType: "opportunity", targetId: "x" } });
+    expect(bad.statusCode).toBe(400);
+    const ok = await app.inject({
+      method: "POST",
+      url: "/v1/match-events",
+      headers: { cookie },
+      payload: { eventType: "apply", targetType: "opportunity", targetId: "some-id", scoreRules: 70, scoreVector: 85, finalScore: 79 },
+    });
+    expect(ok.statusCode).toBe(200);
+    const db = getDb(TEST_ENV.DATABASE_URL!);
+    const rows = await db.select().from(matchEvents);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.finalScore).toBe(79);
   });
 });

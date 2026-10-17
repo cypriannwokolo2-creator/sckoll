@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
-import { ApiError, api, budgetLabel, type Application, type Opportunity, type Profile } from "@/lib/api";
+import { ApiError, api, budgetLabel, trackMatchEvent, type Application, type Opportunity, type Profile } from "@/lib/api";
 
 type InboxRow = Application & {
   talent: { id: string; name: string | null; emailVerified: boolean };
@@ -155,7 +155,10 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
   useEffect(() => {
     api
       .opportunity(id)
-      .then((res) => setOpp(res.opportunity))
+      .then((res) => {
+        setOpp(res.opportunity);
+        trackMatchEvent({ eventType: "view", targetType: "opportunity", targetId: id, scoreRules: res.opportunity.fitRules ?? undefined, scoreVector: res.opportunity.fitVector ?? undefined, finalScore: res.opportunity.fit ?? undefined });
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load this opportunity."));
   }, [id]);
 
@@ -276,7 +279,7 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
                   </Link>
                 </div>
                 {showApply && !applied && (
-                  <ApplyModal opp={opp} onClose={() => setShowApply(false)} onApplied={() => { setApplied(true); setShowApply(false); }} />
+                  <ApplyModal opp={opp} onClose={() => setShowApply(false)} onApplied={() => { setApplied(true); setShowApply(false); trackMatchEvent({ eventType: "apply", targetType: "opportunity", targetId: id }); }} />
                 )}
                 {editing && isOwner && (
                   <form className="sckoll-auth-form" style={{ marginTop: "2rem", maxWidth: "40rem" }} action={(f) => void onSaveEdit(f)}>

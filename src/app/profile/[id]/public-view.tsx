@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
-import { ApiError, api, type PublicProfile, type PublicProfileResponse } from "@/lib/api";
+import { ApiError, api, trackMatchEvent, type PublicProfile, type PublicProfileResponse } from "@/lib/api";
 
 function initials(name: string | null): string {
   if (!name) return "?";
@@ -23,6 +23,7 @@ export default function PublicProfileView({ params }: { params: Promise<{ id: st
     api
       .publicProfile(id)
       .then((res) => {
+        trackMatchEvent({ eventType: "view", targetType: "talent", targetId: id });
         setProfile(res.profile);
         setReviews(res.reviews);
         setReviewAvg(res.reviewAvg);
