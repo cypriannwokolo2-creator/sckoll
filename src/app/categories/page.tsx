@@ -17,11 +17,19 @@ export const metadata: Metadata = {
   description: "Explore Sckoll work and talent categories.",
 };
 
-export default function CategoriesPage() {
+export default async function CategoriesPage() {
+  let counts: Record<string, number> = {};
+  try {
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8110").replace(/\/$/, "");
+    const res = await fetch(`${base}/v1/categories`, { next: { revalidate: 300 } });
+    if (res.ok) counts = ((await res.json()) as { counts: Record<string, number> }).counts ?? {};
+  } catch {
+    counts = {};
+  }
   return (
     <main className="sckoll-directory-page">
       <section className="sckoll-directory-hero"><div className="sckoll-container"><Link href="/" className="sckoll-breadcrumb">← Back to Sckoll</Link><p className="sckoll-sub-eyebrow">Marketplace directory</p><h1>Find your lane.</h1><p>Explore the work and talent categories that power the Sckoll marketplace.</p></div></section>
-      <section className="sckoll-directory-section"><div className="sckoll-container"><div className="sckoll-directory-grid">{CATEGORIES.map(([slug, title, description]) => <Link key={slug} href={`/categories/${slug}`} className="sckoll-directory-card"><span>EXPLORE ↗</span><h2>{title}</h2><p>{description}</p></Link>)}</div></div></section>
+      <section className="sckoll-directory-section"><div className="sckoll-container"><div className="sckoll-directory-grid">{CATEGORIES.map(([slug, title, description]) => <Link key={slug} href={`/categories/${slug}`} className="sckoll-directory-card"><span>{counts[slug] != null && counts[slug] > 0 ? `${counts[slug]} OPEN ↗` : "EXPLORE ↗"}</span><h2>{title}</h2><p>{description}</p></Link>)}</div></div></section>
     </main>
   );
 }

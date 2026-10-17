@@ -32,6 +32,57 @@ export class ApiError extends Error {
   }
 }
 
+export interface Opportunity {
+  id: string;
+  clientId: string;
+  category: string;
+  type: "project" | "role" | "contract";
+  title: string;
+  description: string;
+  skills: string[];
+  budgetMin: number | null;
+  budgetMax: number | null;
+  rateType: "fixed" | "hourly" | "salary";
+  location: string | null;
+  remote: boolean;
+  status: "draft" | "open" | "closed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OpportunityFilters {
+  q?: string;
+  type?: string;
+  category?: string;
+  skills?: string;
+  budget_min?: string;
+  budget_max?: string;
+  remote?: string;
+  limit?: string;
+  cursor?: string;
+  mine?: string;
+}
+
+export function budgetLabel(o: Pick<Opportunity, "budgetMin" | "budgetMax" | "rateType">): string {
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  if (o.budgetMin != null && o.budgetMax != null) {
+    const base = `${fmt(o.budgetMin)}–${fmt(o.budgetMax)}`;
+    return o.rateType === "hourly" ? `Hourly · ${base}/hr` : o.rateType === "salary" ? `Salary · ${base}` : `Fixed price · ${base}`;
+  }
+  if (o.budgetMin != null || o.budgetMax != null) {
+    return `Budget · ${fmt((o.budgetMin ?? o.budgetMax) as number)}${o.rateType === "hourly" ? "/hr" : ""}`;
+  }
+  return o.rateType === "salary" ? "Full-time · Salary" : o.rateType === "hourly" ? "Hourly · Rate on request" : "Fixed price · On request";
+}
+
+/** Client-side fit estimate: shared-skill overlap with the viewer's profile. */
+export function fitEstimate(viewerSkills: string[], oppSkills: string[]): number | null {
+  if (viewerSkills.length === 0 || oppSkills.length === 0) return null;
+  const mine = new Set(viewerSkills.map((s) => s.toLowerCase()));
+  const hits = oppSkills.filter((s) => [...mine].some((m) => m.includes(s.toLowerCase()) || s.toLowerCase().includes(m))).length;
+  return Math.round((50 + (hits / oppSkills.length) * 49));
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -70,4 +121,38 @@ export const api = {
     request<{ ok: boolean; profile: Profile }>("/v1/profiles/me", { method: "PATCH", body: JSON.stringify(input) }),
   contact: (input: { name: string; email: string; topic: string; message: string }) =>
     request<{ ok: boolean }>("/v1/contact", { method: "POST", body: JSON.stringify(input) }),
+  opportunities: (filters: OpportunityFilters = {}) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
+    const qs = params.toString();
+    return request<{ ok: boolean; opportunities: Opportunity[]; nextCursor: string | null }>(
+      `/v1/opportunities${qs ? `?${qs}` : ""}`,
+    );
+  },
+  opportunity: (id: string) => request<{ ok: boolean; opportunity: Opportunity }>(`/v1/opportunities/${id}`),
+  postOpportunity: (input: {
+    category: string;
+    type: string;
+    title: string;
+    description: string;
+    skills: string[];
+    budgetMin?: number;
+    budgetMax?: number;
+    rateType: string;
+    location?: string;
+    remote: boolean;
+  }) => request<{ ok: boolean; opportunity: Opportunity }>("/v1/opportunities", { method: "POST", body: JSON.stringify(input) }),
+  closeOpportunity: (id: string) => request<{ ok: boolean }>(`/v1/opportunities/${id}`, { method: "DELETE" }),
+  updateOpportunity: (id: string, input: Record<string, unknown>) =>
+    request<{ ok: boolean; opportunity: Opportunity }>(`/v1/opportunities/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  categories: () => request<{ ok: boolean; counts: Record<string, number> }>("/v1/categories"),
+  talentSearch: (filters: { q?: string; skills?: string } = {}) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
+    const qs = params.toString();
+    return request<{
+      ok: boolean;
+      results: Array<{ id: string; name: string | null; role: string; headline: string | null; bio: string | null; skills: string[]; fit: number }>;
+    }>(`/v1/talent/search${qs ? `?${qs}` : ""}`);
+  },
 };

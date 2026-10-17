@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, boolean, jsonb, integer, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Sckoll v1 auth + profiles schema.
@@ -70,3 +71,53 @@ export const profiles = pgTable("profiles", {
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
+
+/**
+ * Marketplace: client-posted work. Talent discovers via /v1/opportunities,
+ * applies in Phase 4. Status is a soft lifecycle — rows are never hard-deleted.
+ */
+export const opportunities = pgTable("opportunities", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  category: text("category").notNull().default("development-it"),
+  type: text("type", { enum: ["project", "role", "contract"] }).notNull().default("project"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  skills: jsonb("skills").$type<string[]>().notNull().default([]),
+  budgetMin: integer("budget_min"),
+  budgetMax: integer("budget_max"),
+  rateType: text("rate_type", { enum: ["fixed", "hourly", "salary"] }).notNull().default("fixed"),
+  location: text("location"),
+  remote: boolean("remote").notNull().default(true),
+  status: text("status", { enum: ["draft", "open", "closed"] }).notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Canonical skill taxonomy backing categories + matching. Seeded, not user input. */
+export const skills = pgTable("skills", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  slug: text("slug").notNull().unique(),
+  label: text("label").notNull(),
+  category: text("category").notNull(),
+});
+
+/** Append-only audit trail for marketplace actions (Phase 3+: create/status). */
+export const auditLog = pgTable("audit_log", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Opportunity = typeof opportunities.$inferSelect;
+
+/** GIN full-text index over title + description for marketplace search. */
+export const opportunitiesFts = index("opportunities_fts_idx").using(
+  "gin",
+  sql`to_tsvector('english', ${opportunities.title} || ' ' || ${opportunities.description})`,
+);

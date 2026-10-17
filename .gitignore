@@ -39,7 +39,6 @@ yarn-error.log*
 /backend/node_modules
 /backend/dist
 /backend/coverage
-/backend/drizzle
 
 # vercel
 .vercel

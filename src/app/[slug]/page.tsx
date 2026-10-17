@@ -14,27 +14,6 @@ const CATEGORIES = [
 ];
 
 const PAGES: Record<string, ProductPageProps> = {
-  "find-work": {
-    eyebrow: "For freelancers and job seekers",
-    title: "Find work that fits before you apply.",
-    description: "Sckoll watches the market for projects, contracts, and roles that match your skills, experience, and direction—then helps you make a stronger move.",
-    primaryLabel: "Create your work profile",
-    primaryHref: "/sign-up?role=talent",
-    secondaryLabel: "Browse opportunity types",
-    secondaryHref: "/categories/development-it",
-    tone: "dark",
-    stats: [{ value: "24/7", label: "opportunity radar" }, { value: "0.82+", label: "fit threshold" }, { value: "1", label: "profile to manage it all" }],
-    cards: [
-      { label: "DISCOVER", title: "Recommended opportunities", description: "A feed shaped around your actual work, not generic keywords.", href: "/recommended" },
-      { label: "APPLY", title: "AI proposal assistant", description: "Turn your context into a concise, relevant application or pitch.", href: "/proposal-assistant" },
-      { label: "TRACK", title: "Your opportunity pipeline", description: "Keep matched, pitched, interviewing, and closed work in one place.", href: "/pipeline" },
-    ],
-    steps: [
-      { number: "01", title: "Build your profile", description: "Add skills, proof of work, experience, and what you want next." },
-      { number: "02", title: "Review your matches", description: "See why an opportunity fits before you spend time applying." },
-      { number: "03", title: "Send with context", description: "Approve a tailored pitch, then track what happens next." },
-    ],
-  },
   "find-talent": {
     eyebrow: "For founders, agencies, and lean teams",
     title: "Find the right person without becoming a recruiter.",
@@ -277,21 +256,6 @@ const PAGES: Record<string, ProductPageProps> = {
       { label: "ROLE", title: "Senior product engineer", description: "Remote · full-time · product teams" },
       { label: "PROJECT", title: "React Native builds", description: "Fixed price · startup clients" },
       { label: "SKILL", title: "Technical writing", description: "Docs · developer tools · AI" },
-    ],
-  },
-  "post-project": {
-    eyebrow: "For clients and founders",
-    title: "Post the outcome—not a vague job description.",
-    description: "Give talented people enough context to decide if they can help, then let Sckoll find the strongest fit for the work.",
-    primaryLabel: "Describe your project",
-    primaryHref: "/sign-up?role=client",
-    secondaryLabel: "Find talent first",
-    secondaryHref: "/find-talent",
-    tone: "acid",
-    steps: [
-      { number: "01", title: "Name the outcome", description: "Explain what needs to be true when the work is done." },
-      { number: "02", title: "Add the context", description: "Share constraints, timing, skills, and the proof that matters." },
-      { number: "03", title: "Review the fit", description: "Compare responses and move the right person into a clear agreement." },
     ],
   },
   "agencies": {
