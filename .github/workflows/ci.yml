@@ -114,7 +114,6 @@ jobs:
     env:
       DATABASE_URL: postgres://sckoll:sckoll@localhost:5432/sckoll
       AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
-      NODE_ENV: development
       REDIS_URL: ""
       PORT: "8110"
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8110

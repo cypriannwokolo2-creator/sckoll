@@ -193,7 +193,7 @@ describe("payment routes", () => {
   });
 
   it("fail-closes without a key and guards access", async () => {
-    const { client, milestoneId, contractId } = await setupContract(app);
+    const { milestoneId, contractId } = await setupContract(app);
     const anon = await app.inject({ method: "POST", url: `/v1/milestones/${milestoneId}/fund` });
     expect(anon.statusCode).toBe(401);
     const outsider = await signupAs(app, "payo@sckoll.com", "talent");

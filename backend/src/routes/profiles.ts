@@ -4,7 +4,6 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { profiles, reviews, users } from "../db/schema.js";
 import { cosine, embedTexts, getEmbeddings, localEmbed, upsertEmbedding, profileText, blendFit, vectorFit } from "../lib/embeddings.js";
-import { computeFit } from "../lib/match.js";
 import type { Env } from "../env.js";
 import { requireAuth, resolveSessionUser } from "../lib/session.js";
 

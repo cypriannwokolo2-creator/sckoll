@@ -1,9 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb } from "../db/client.js";
-import { auditLog, contractFlags, contracts, milestones, payments, profiles, users } from "../db/schema.js";
+import { auditLog, contracts, milestones, payments, profiles } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { notify } from "./notifications.js";
 import { createTransferRecipient, initiateTransfer, initializeTransaction, isPaystackConfigured, verifyTransaction, verifyWebhookSignature } from "../lib/paystack.js";
