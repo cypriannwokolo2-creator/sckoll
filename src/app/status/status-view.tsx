@@ -15,6 +15,7 @@ interface Check {
 export default function StatusView() {
   const [checks, setChecks] = useState<Check[]>([
     { label: "Landing experience", ok: true, detail: "This page rendered — the site is up." },
+    { label: "Core services (db / cache)", ok: null, detail: "Checking…" },
     { label: "Marketplace API", ok: null, detail: "Checking…" },
     { label: "Authentication", ok: null, detail: "Checking…" },
   ]);
@@ -23,11 +24,28 @@ export default function StatusView() {
     let cancelled = false;
     (async () => {
       try {
-        const h = await fetch(`${API_URL}/health`).then((r) => r.json());
-        const c = await fetch(`${API_URL}/v1/auth/config`).then((r) => r.json());
+        const [h, c, rz] = await Promise.all([
+          fetch(`${API_URL}/health`).then((r) => r.json()),
+          fetch(`${API_URL}/v1/auth/config`).then((r) => r.json()),
+          fetch(`${API_URL}/readyz`).then(async (r) => ({ ok: r.ok, body: await r.json().catch(() => null) })).catch(() => null),
+        ]);
         if (cancelled) return;
+        const checks2 = rz?.body?.checks;
+        const deps = checks2
+          ? [
+              `database ${String(checks2.database?.latencyMs ?? "?")}ms`,
+              checks2.redis ? `cache ${String(checks2.redis.latencyMs)}ms` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "";
         setChecks([
           { label: "Landing experience", ok: true, detail: "This page rendered — the site is up." },
+          {
+            label: "Core services (db / cache)",
+            ok: rz?.ok === true,
+            detail: rz?.ok === true ? `Reachable — ${deps}` : "Degraded — some dependencies are unreachable.",
+          },
           { label: "Marketplace API", ok: h?.ok === true, detail: h?.ok === true ? `Responding (${h.service} ${h.version})` : "Not responding" },
           { label: "Authentication", ok: c?.email_password_enabled === true, detail: `Email sign-in ${c?.email_password_enabled ? "on" : "off"} · Google ${c?.google_enabled ? "on" : "off"}` },
         ]);

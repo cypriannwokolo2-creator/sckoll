@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   BREVO_FROM_SECURITY: z.string().default("Sckoll <no-reply@sckoll.com>"),
   BREVO_FROM_HELLO: z.string().default("Sckoll <hello@sckoll.com>"),
   CONTACT_TO: z.string().default(""),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
