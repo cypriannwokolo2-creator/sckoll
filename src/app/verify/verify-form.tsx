@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
+import Mark from "@/components/Mark";
 
 function VerifyForm() {
   const params = useSearchParams();
@@ -47,7 +48,10 @@ export default function VerifyPage() {
   return (
     <main className="sckoll-auth-page">
       <div className="sckoll-auth-brand">
-        <Link href="/">SCKOLL</Link>
+        <Link href="/">
+          <Mark small />
+          <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
+        </Link>
       </div>
       <section className="sckoll-auth-layout">
         <div className="sckoll-auth-message">

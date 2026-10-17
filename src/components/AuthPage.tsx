@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, GOOGLE_CLIENT_ID, api } from "@/lib/api";
+import Mark from "@/components/Mark";
 
 declare global {
   interface Window {
@@ -177,9 +178,7 @@ export default function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
     <main className="sckoll-auth-page">
       <div className="sckoll-auth-brand">
         <Link href="/">
-          <span className="sckoll-mark sckoll-mark-small" aria-hidden="true">
-            ↗
-          </span>
+          <Mark small />
           <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
         </Link>
       </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, api, type Profile } from "@/lib/api";
+import Mark from "@/components/Mark";
 
 export default function ProfileSetupForm() {
   const router = useRouter();
@@ -70,9 +71,7 @@ export default function ProfileSetupForm() {
     <main className="sckoll-auth-page">
       <div className="sckoll-auth-brand">
         <Link href="/">
-          <span className="sckoll-mark sckoll-mark-small" aria-hidden="true">
-            ↗
-          </span>
+          <Mark small />
           <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
         </Link>
       </div>
