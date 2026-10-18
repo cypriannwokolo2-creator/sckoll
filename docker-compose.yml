@@ -26,7 +26,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=edge
       - traefik.http.routers.sckoll-api.entrypoints=websecure
-      - traefik.http.routers.sckoll-api.rule=Host(`api.sckoll.com`)
+      - traefik.http.routers.sckoll-api.rule=Host(`api.sckoll.com`) && !Path(`/metrics`)
       - traefik.http.routers.sckoll-api.middlewares=sec-headers@file
       - traefik.http.routers.sckoll-api.service=sckoll-api
       - traefik.http.routers.sckoll-api.tls.certresolver=letsencrypt
@@ -95,8 +95,46 @@ services:
     networks:
       - internal
 
+  # Observability stack (Phase 11): scrapes api /metrics over the internal
+  # network; UIs are host-local only (SSH tunnel to reach them).
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - 127.0.0.1:9090:9090
+    networks:
+      - internal
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    env_file:
+      - ./.env.observability
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - 127.0.0.1:8130:3000
+    depends_on:
+      - prometheus
+    networks:
+      - internal
+
 volumes:
   sckoll-pgdata:
+  prometheus-data:
+  grafana-data:
 
 networks:
   internal:
