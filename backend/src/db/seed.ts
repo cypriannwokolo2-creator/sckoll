@@ -151,8 +151,25 @@ async function main() {
     await closeDb();
     return;
   }
-  const email = process.env.SEED_CLIENT_EMAIL;
-  if (!email) throw new Error("Set SEED_CLIENT_EMAIL to an existing verified client account.");
+  let email = process.env.SEED_CLIENT_EMAIL;
+  if (!email) {
+    // Fresh database (staging / rebuild from docs): bootstrap a verified demo
+    // client so seeding stays self-contained. Existing databases never reach
+    // this branch (opportunities exist above), and an explicit
+    // SEED_CLIENT_EMAIL always wins over the bootstrap.
+    email = "demo-client@sckoll.dev";
+    const found = (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
+    if (!found) {
+      await db.insert(users).values({
+        email,
+        name: "Demo Client",
+        passwordHash: await hashPassword("seed-client-password"),
+        role: "client",
+        emailVerified: true,
+      });
+      console.log(`bootstrapped demo client ${email} (password: seed-client-password)`);
+    }
+  }
   const client = (await db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1))[0];
   if (!client) throw new Error(`No user found for SEED_CLIENT_EMAIL=${email}`);
   const rows = [];

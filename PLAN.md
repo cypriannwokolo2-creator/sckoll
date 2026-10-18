@@ -192,7 +192,14 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
   p95; backend 71 tests. Runbook: `docs/runbooks/metrics.md`
 - [x] Runbooks: `docs/runbooks/restart.md`, `rotate-secrets.md`, `paystack-webhook-replay.md` (replay is safe: webhook is idempotent + signature-verified + server-side re-verify)
 - [x] Rollback documented: `docs/runbooks/rollback.md` — frontend via Vercel "Promote to Production" / `git revert`, API via checkout of last-good SHA + `docker compose up -d --build api`; app rolls back, schema never does
-- [ ] Staging environment (compose project + Vercel preview) that never touches prod data
+- [x] Staging environment (compose project + Vercel preview) that never touches prod data —
+  `docker-compose.staging.yml` runs as its own project (`scripts/staging.sh up|status|seed|
+  down|destroy`): separate volume/DB (`sckoll_staging`), no prod `env_file`, distinct host
+  ports (8111/5436/6382), never on Traefik. Fresh-DB seed now self-contained (bootstraps
+  verified demo client when `SEED_CLIENT_EMAIL` unset; prod path unchanged). Verified:
+  staging readyz=200 + 2 users/30 opportunities seeded while prod row counts unchanged.
+  Vercel previews evidenced via GitHub deployments API (`Preview` per PR, `Production` per
+  merge). Runbook: `docs/runbooks/staging.md`
 
 ## Phase 12 — Admin, moderation & disputes
 **Gate: a flagged item can be resolved without touching the database.**

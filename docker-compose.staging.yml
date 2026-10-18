@@ -1,0 +1,72 @@
+# Staging stack (Phase 11) — a SEPARATE compose project (`-p sckoll-staging`):
+# own postgres + redis + api on distinct host ports. No shared volume, no
+# shared network, no prod env file — isolation from production data is
+# structural, not a convention. Never routed through Traefik (host-local only;
+# reach it via SSH tunnel: 127.0.0.1:8111).
+#
+#   ./scripts/staging.sh up     # build + migrate (image CMD) + seed
+#   ./scripts/staging.sh status
+#   ./scripts/staging.sh logs
+#   ./scripts/staging.sh down
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sckoll
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: sckoll_staging
+    volumes:
+      - staging-pgdata:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5436:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sckoll -d sckoll_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - staging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:6382:6379
+    networks:
+      - staging
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    # Deliberately NO env_file: production secrets (backend/.env) never enter
+    # this stack. Only the explicit staging values below are used.
+    environment:
+      PORT: 8111
+      DATABASE_URL: postgres://sckoll:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/sckoll_staging
+      REDIS_URL: redis://redis:6379
+      SITE_URL: http://127.0.0.1:8111
+      FRONTEND_URL: http://127.0.0.1:8111
+      API_URL: http://127.0.0.1:8111
+      AUTH_SECRET: ${STAGING_AUTH_SECRET:?set STAGING_AUTH_SECRET in .env}
+      NODE_ENV: production
+      LOG_LEVEL: info
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:8111:8111
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8111/readyz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    networks:
+      - staging
+
+volumes:
+  staging-pgdata:
+
+networks:
+  staging:
