@@ -41,6 +41,5 @@ a restore drill has been executed successfully (2026-10-17).
 
 ## Error tracking
 
-Structured logs are the current source of truth (`docker compose logs api`), including
-`x-request-id` correlation with what a user's browser reported. GlitchTip/Sentry is the next
-addition (Phase 11).
+Self-hosted GlitchTip is live — see [error-tracking.md](./error-tracking.md). Structured
+logs (`docker compose logs api`, `x-request-id` correlation) remain the second source of truth.
