@@ -59,6 +59,42 @@ services:
     networks:
       - internal
 
+  # Self-hosted error tracking (Sentry-compatible). Runs as ONE all-in-one
+  # process (v6): serves the UI/API, consumes the task queue, schedules tasks.
+  # Host-local only (127.0.0.1:8120) — reach it via SSH tunnel; error data is
+  # sensitive, so it is deliberately not on the public Traefik router. When a
+  # glitchtip.sckoll.com DNS record exists, add the standard Traefik labels and
+  # an `edge` network attachment to publish it.
+  glitchtip:
+    image: glitchtip/glitchtip:6.2.6
+    restart: unless-stopped
+    # Migrations explicitly before serve (init alone does not migrate v6).
+    command: sh -c "python manage.py migrate && ./bin/start.sh"
+    env_file:
+      - ./.env.glitchtip
+    environment:
+      DATABASE_URL: postgres://sckoll:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/glitchtip
+      VALKEY_URL: redis://glitchtip-valkey:6379
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:8120:8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/_health/', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 60s
+    networks:
+      - internal
+
+  glitchtip-valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    networks:
+      - internal
+
 volumes:
   sckoll-pgdata:
 

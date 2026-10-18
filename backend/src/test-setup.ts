@@ -5,6 +5,9 @@ import { Client } from "pg";
 /** Load backend/.env (gitignored dev secrets) so tests can derive the test DB URL. */
 dotenv.config({ path: new URL("../.env", import.meta.url).pathname });
 
+// Never ship error events from tests, even when the local .env configures a DSN.
+delete process.env.SENTRY_DSN;
+
 export function testDatabaseUrl(name?: string): string {
   if (process.env.SCKOLL_TEST_DATABASE_URL) return process.env.SCKOLL_TEST_DATABASE_URL;
   const dev = process.env.DATABASE_URL;

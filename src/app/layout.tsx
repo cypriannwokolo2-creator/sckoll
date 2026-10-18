@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Maven_Pro, Julius_Sans_One } from "next/font/google";
 import "./globals.css";
+import "../../sentry.client.config"; // client error tracking (no-op without NEXT_PUBLIC_SENTRY_DSN)
 
 const maven = Maven_Pro({
   variable: "--font-maven",

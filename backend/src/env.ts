@@ -15,6 +15,8 @@ const EnvSchema = z.object({
   BREVO_FROM_HELLO: z.string().default("Sckoll <hello@sckoll.com>"),
   CONTACT_TO: z.string().default(""),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
+  SENTRY_DSN: z.string().default(""), // empty = error tracking off (no-op)
+  SENTRY_RELEASE: z.string().default(""), // pairs events with uploaded source maps
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 

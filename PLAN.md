@@ -142,7 +142,16 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
 - [x] Restore drill: `scripts/restore.sh` (refuses to target production, sanity-counts after load) + `docs/runbooks/restore.md`; **drill executed 2026-10-17** — latest dump restored into `sckoll_restore_drill`, counts matched production exactly (users=2, opportunities=30, payments=0), scratch DB dropped
 - [x] Migration step in deploy: migrations applied **before the server starts** via the runtime migrator (`backend/src/db/migrate.ts`, `drizzle-orm/node-postgres/migrator` on the `drizzle/` journal — no dev deps in the image). Wired into `npm start` and the container `CMD`; policy: migrations stay backward-compatible with the previous app version (expand → migrate → contract), see `docs/runbooks/rollback.md`
 - [x] Structured JSON logging (`backend/src/lib/logger.ts`): serializers emit id/method/url/ip + status only (headers/bodies never serialized → no cookies, tokens, passwords), redact paths as backstop, `x-request-id` echoed on every response (inbound honoured, hostile values re-minted). 6 tests incl. a real Fastify request asserting secrets never reach the log stream
-- [ ] Sentry (or self-hosted GlitchTip) on backend + frontend, source maps uploaded
+- [ ] Error tracking — **backend live + verified, frontend wired (needs one DNS record)**
+  - self-hosted GlitchTip 6.2.6 (compose, host-local `127.0.0.1:8120`, ~180 MB, SSH-tunnel UI);
+    embedded worker required `GLITCHTIP_EMBED_WORKER=true` (runbook documents the trap)
+  - backend: SDK + error handler (unchanged 500 contract, 67 tests) — **verified end-to-end**:
+    test exception from `/app/dist` landed as an issue linked to release `sckoll-api@bb0ae8a`
+    with dist stack frames; source maps uploaded for that release via `scripts/sentry-release.sh`
+  - frontend: `@sentry/nextjs` v11 via Next's native `instrumentation.ts` (Turbopack-safe, no
+    webpack wrapper), DSN-driven no-op, build green — **activation blocked**: needs
+    `glitchtip.sckoll.com` DNS record + Vercel env (exact steps in
+    `docs/runbooks/error-tracking.md`)
 - [x] Health endpoints: `/healthz` (liveness, touches nothing) + `/readyz` (probes the **configured** DB URL and Redis with short-lived pools; 503 + per-dependency latency on degraded). Compose `healthcheck` on the api service hits `/readyz`; 4 tests cover live/ready/503/correlation-id
 - [x] Uptime monitor: `scripts/sentinel.sh` cron every 5 min checks `www.sckoll.com`, `api.../healthz`, `api.../readyz` + an error-rate spike rule (>20 `level:50` lines / 7m). State file prevents mail storms (alert after 2 bad rounds, one per incident, recovery mail). Caveat (documented in `docs/runbooks/alerting.md`): on-box monitor cannot see whole-box downtime — off-box second layer recommended when an account exists
 - [ ] Alert channel — **mechanism shipped, channel needs a key**: sentinel composes and sends Brevo emails (alert + recovery, `ALERT_TO` recipient, `SENTINEL_TEST=1` validates end-to-end). Blocked: `BREVO_API_KEY` is **empty on the serving box** (discovered while wiring — the contact form has never actually sent mail either). Owner must provide a Brevo API key, then one test alert closes this milestone

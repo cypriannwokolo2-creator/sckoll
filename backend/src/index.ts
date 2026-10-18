@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -8,6 +8,7 @@ import { Pool } from "pg";
 import { loadEnv, type Env } from "./env.js";
 import { isOriginAllowed } from "./lib/cors.js";
 import { genReqId, loggerOptions } from "./lib/logger.js";
+import { captureError, initSentry } from "./lib/observability.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerContractRoutes } from "./routes/contracts.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
@@ -20,6 +21,7 @@ import { registerProfileRoutes } from "./routes/profiles.js";
 
 export async function buildServer(overrides?: Partial<Env>) {
   const env = { ...loadEnv(), ...overrides };
+  initSentry(env.SENTRY_DSN, env.NODE_ENV, env.SENTRY_RELEASE);
   const app = Fastify({
     logger: env.NODE_ENV !== "test" ? loggerOptions(env.LOG_LEVEL) : false,
     genReqId,
@@ -29,6 +31,13 @@ export async function buildServer(overrides?: Partial<Env>) {
   // Correlation id on every response: what the client saw ↔ what we logged.
   app.addHook("onRequest", async (req, reply) => {
     reply.header("x-request-id", String(req.id));
+  });
+
+  // Error tracking + the default Fastify error shape (unchanged contract:
+  // { statusCode, error, message }) — report first, then reply identically.
+  app.setErrorHandler((err: FastifyError & { statusCode?: number }, req, reply) => {
+    captureError(err, { route: req.routeOptions?.url ?? "unknown", reqId: String(req.id) });
+    reply.code(err.statusCode && err.statusCode >= 400 ? err.statusCode : 500).send(err);
   });
 
   await app.register(helmet, {
