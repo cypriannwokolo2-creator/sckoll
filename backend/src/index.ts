@@ -8,6 +8,7 @@ import { Pool } from "pg";
 import { loadEnv, type Env } from "./env.js";
 import { isOriginAllowed } from "./lib/cors.js";
 import { genReqId, loggerOptions } from "./lib/logger.js";
+import { initMetrics, observeRequest, registry } from "./lib/metrics.js";
 import { captureError, initSentry } from "./lib/observability.js";
 import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerContractRoutes } from "./routes/contracts.js";
@@ -22,6 +23,7 @@ import { registerProfileRoutes } from "./routes/profiles.js";
 export async function buildServer(overrides?: Partial<Env>) {
   const env = { ...loadEnv(), ...overrides };
   initSentry(env.SENTRY_DSN, env.NODE_ENV, env.SENTRY_RELEASE);
+  initMetrics(env.NODE_ENV);
   const app = Fastify({
     logger: env.NODE_ENV !== "test" ? loggerOptions(env.LOG_LEVEL) : false,
     genReqId,
@@ -31,6 +33,13 @@ export async function buildServer(overrides?: Partial<Env>) {
   // Correlation id on every response: what the client saw ↔ what we logged.
   app.addHook("onRequest", async (req, reply) => {
     reply.header("x-request-id", String(req.id));
+  });
+
+  // Request metrics: route pattern only (bounded cardinality), includes 404s
+  // as `unmatched`. Grafana panels for latency p95 / error rate / webhook
+  // failures read these (docs/runbooks/metrics.md).
+  app.addHook("onResponse", async (req, reply) => {
+    observeRequest(req.method, req.routeOptions?.url, reply.statusCode, reply.elapsedTime / 1000);
   });
 
   // Error tracking + the default Fastify error shape (unchanged contract:
@@ -79,6 +88,13 @@ export async function buildServer(overrides?: Partial<Env>) {
   app.get("/health", async () => ({ ok: true, service: "sckoll-api", version: "0.1.0" }));
   // Liveness: process is up; touches no dependency (a bad DB must not "kill" the process).
   app.get("/healthz", async () => ({ ok: true, status: "live" }));
+  // Prometheus scrape endpoint. Public Traefik router excludes this path
+  // (compose rule `!Path(/metrics)`); Prometheus scrapes over the internal
+  // docker network, ops can hit 127.0.0.1:8110/metrics directly.
+  app.get("/metrics", async (_req, reply) => {
+    reply.header("content-type", registry.contentType);
+    return registry.metrics();
+  });
   // Readiness: dependencies are reachable. 503 when degraded — compose healthchecks
   // and the /status page both read this.
   app.get("/readyz", async (_req, reply) => {

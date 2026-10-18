@@ -25,7 +25,7 @@ docker compose ps                                            # stack healthy
 
 ---
 
-## Status snapshot (2026-10-17)
+## Status snapshot (2026-10-18)
 
 | Phase | Topic | State |
 |---|---|---|
@@ -38,8 +38,34 @@ docker compose ps                                            # stack healthy
 | 7 | Contracts: milestones, messaging, reviews | ✅ shipped `6fb9e1e` |
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
 | **9** | **Growth: semantic matching, telemetry, SEO** | ✅ shipped `afa8315` (deployed + verified 2026-10-17) |
-| **10** | **Test & CI gate** | 🟡 CI green + merge gate enforced;1 milestone open (credentialed payments e2e) |
-| 11–20 | Forward plan (below) | ⬜ not started |
+| **10** | **Test & CI gate** | 🟡 3/4 — CI green + merge gate enforced;1 open (mocked-Paystack full loop, carries to Phase 13) |
+| **11** | **Reliability & operations** | 🟡 10/15 — probes, boot migrations, JSON logs, runbooks, restore drill, backups, sentinel, error tracking shipped (PRs #1–#6);5 open |
+| 12–20 | Forward plan (below) | ⬜ not started —106 open milestones |
+
+### Remaining milestones:121 open (inventory2026-10-18)
+
+| Phase | Open | Theme |
+|---|---|---|
+| 10 | 1 | mocked-Paystack Playwright full loop |
+| 11 | 5 | off-box backups · error tracking frontend · alert-channel key · Grafana metrics · staging |
+| 12 | 12 | admin, moderation & disputes |
+| 13 | 12 | production money: payouts, refunds, reconciliation, receipts |
+| 14 | 12 | trust & safety: verification, fraud, reporting |
+| 15 | 12 | search & discovery: FTS, ranking v2, embeddings |
+| 16 | 14 | growth, SEO & lifecycle |
+| 17 | 12 | performance & scale |
+| 18 | 14 | security, privacy & compliance |
+| 19 | 12 | mobile, accessibility & polish |
+| 20 | 15 | launch |
+
+**Blocked on the owner (3)** — nothing else waits on a human:
+
+1. **Brevo API key** → closes Phase 11 alert channel (also enables contact-form mail).
+2. **DNS `glitchtip.sckoll.com` → box IP** → activates frontend error tracking + sourcemap upload.
+3. **Off-box storage creds** (R2/B2/rclone) → activates nightly off-box backup sync.
+
+Full milestone text lives in each phase section below; the tick box and its evidence land in the
+same commit, per the rules at the top.
 
 ---
 
@@ -156,7 +182,14 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
 - [x] Uptime monitor: `scripts/sentinel.sh` cron every 5 min checks `www.sckoll.com`, `api.../healthz`, `api.../readyz` + an error-rate spike rule (>20 `level:50` lines / 7m). State file prevents mail storms (alert after 2 bad rounds, one per incident, recovery mail). Caveat (documented in `docs/runbooks/alerting.md`): on-box monitor cannot see whole-box downtime — off-box second layer recommended when an account exists
 - [ ] Alert channel — **mechanism shipped, channel needs a key**: sentinel composes and sends Brevo emails (alert + recovery, `ALERT_TO` recipient, `SENTINEL_TEST=1` validates end-to-end). Blocked: `BREVO_API_KEY` is **empty on the serving box** (discovered while wiring — the contact form has never actually sent mail either). Owner must provide a Brevo API key, then one test alert closes this milestone
 - [x] `/status` page fed by real checks: adds a "Core services (db / cache)" row reading `/readyz` (latency per dependency) alongside the existing API/auth probes
-- [ ] Grafana/`prom-client` request metrics: latency p95, error rate, webhook failures
+- [x] Grafana/`prom-client` request metrics: latency p95, error rate, webhook failures —
+  `/metrics` (counter + latency histogram, route-pattern labels, `unmatched` for 404s; process
+  metrics skipped in tests) → `prom/prometheus:v3.13.4` (15s scrape, 15d retention) →
+  `grafana/grafana:13.2.4` with provisioned datasource + **"Sckoll API overview" dashboard**
+  (request rate · 5xx error rate · p95 by route · p50/p95/p99 · webhook 4xx/5xx · RSS).
+  Public router excludes `/metrics` (external 404 verified); UIs host-local (SSH tunnel,
+  creds in `.env.observability`). Evidence: target `up`, Grafana proxy query returned live
+  p95; backend 71 tests. Runbook: `docs/runbooks/metrics.md`
 - [x] Runbooks: `docs/runbooks/restart.md`, `rotate-secrets.md`, `paystack-webhook-replay.md` (replay is safe: webhook is idempotent + signature-verified + server-side re-verify)
 - [x] Rollback documented: `docs/runbooks/rollback.md` — frontend via Vercel "Promote to Production" / `git revert`, API via checkout of last-good SHA + `docker compose up -d --build api`; app rolls back, schema never does
 - [ ] Staging environment (compose project + Vercel preview) that never touches prod data

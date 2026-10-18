@@ -1,0 +1,11 @@
+# Scrapes the API's /metrics over the internal docker network — that path is
+# excluded from the public Traefik router (see docker-compose.yml).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: sckoll-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8110"]
