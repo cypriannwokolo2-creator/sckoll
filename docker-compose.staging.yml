@@ -46,7 +46,9 @@ services:
       DATABASE_URL: postgres://sckoll:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/sckoll_staging
       REDIS_URL: redis://redis:6379
       SITE_URL: http://127.0.0.1:8111
-      FRONTEND_URL: http://127.0.0.1:8111
+      # Allowed browser origin for the local dev UI used to verify staging
+      # flows in a real browser (CORS allow-list; SITE_URL covers API-origin calls).
+      FRONTEND_URL: http://127.0.0.1:3000
       API_URL: http://127.0.0.1:8111
       AUTH_SECRET: ${STAGING_AUTH_SECRET:?set STAGING_AUTH_SECRET in .env}
       NODE_ENV: production
