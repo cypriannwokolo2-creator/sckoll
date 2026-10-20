@@ -1,7 +1,11 @@
 /** Typed client for the Sckoll backend (api.sckoll.com in prod, localhost:8110 in dev). */
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8110").replace(/\/$/, "");
-export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+// Public Google OAuth client ID for the Sckoll web client — not a secret: it ships
+// inside the browser bundle by design (Google console value). The NEXT_PUBLIC_ env
+// var still overrides it for forks/local builds.
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
+  "165282566842-crmpgj3eumceg5ial5ridmhvfr307c62.apps.googleusercontent.com";
 
 export interface PublicUser {
   id: string;
