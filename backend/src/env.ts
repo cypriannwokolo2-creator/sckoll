@@ -9,6 +9,7 @@ const EnvSchema = z.object({
   API_URL: z.string().url().default("https://api.sckoll.com"),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(""), // server-only; never returned by any route, never logged, never sent to the frontend (the button flow verifies ID tokens without it)
   PAYSTACK_SECRET_KEY: z.string().optional().default(""),
   BREVO_API_KEY: z.string().optional().default(""),
   BREVO_FROM_SECURITY: z.string().default("Sckoll <no-reply@sckoll.com>"),

@@ -31,6 +31,9 @@ When: a secret may have leaked, on a schedule (quarterly), or after staff/toolin
   container keeps its own `POSTGRES_PASSWORD` init; existing data is unaffected.
 - **Vercel env**: update in project settings, then redeploy (`master` push or "Redeploy") —
   `NEXT_PUBLIC_*` values are baked at build time.
+- **Google client** (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`): reissue the OAuth client
+  in the console, update both lines in `backend/.env`, recreate `api` — full procedure and
+  the exact console fields in `docs/runbooks/google-signin.md`. Sessions are unaffected.
 
 ## After rotation
 
