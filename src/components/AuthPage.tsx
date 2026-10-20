@@ -23,7 +23,11 @@ declare global {
 function GoogleButton({ role }: { role: "talent" | "client" }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  // The GIS script loads lazily, so window.google is usually still undefined on
+  // mount. This flag flips from the script's onLoad so the effect re-runs and
+  // renders the button — without it the button never appears at all.
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const rendered = useRef(false);
   const holder = useRef<HTMLDivElement>(null);
 
   const onCredential = useCallback(
@@ -40,11 +44,11 @@ function GoogleButton({ role }: { role: "talent" | "client" }) {
   );
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google || !holder.current || ready) return;
+    if (!GOOGLE_CLIENT_ID || !window.google || !holder.current || rendered.current) return;
     window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onCredential });
     window.google.accounts.id.renderButton(holder.current, { theme: "filled_black", size: "large", width: 320 });
-    setReady(true);
-  }, [onCredential, ready]);
+    rendered.current = true;
+  }, [onCredential, scriptLoaded]);
 
   if (!GOOGLE_CLIENT_ID) {
     return (
@@ -60,7 +64,11 @@ function GoogleButton({ role }: { role: "talent" | "client" }) {
   }
   return (
     <>
-      {GOOGLE_CLIENT_ID && <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => setScriptLoaded(true)}
+      />
       <div className="sckoll-auth-divider">
         <span>or continue with</span>
       </div>
