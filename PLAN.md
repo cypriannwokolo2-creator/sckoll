@@ -39,15 +39,15 @@ docker compose ps                                            # stack healthy
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
 | **9** | **Growth: semantic matching, telemetry, SEO** | ✅ shipped `afa8315` (deployed + verified 2026-10-17) |
 | **10** | **Test & CI gate** | 🟡 3/4 — CI green + merge gate enforced;1 open (mocked-Paystack full loop, carries to Phase 13) |
-| **11** | **Reliability & operations** | 🟡 11/14 — PRs #1–#8 shipped probes, boot migrations, JSON logs, runbooks, backups + restore drill, sentinel, GlitchTip backend tracking, metrics + Grafana, staging; 3 open (all owner-blocked) |
+| **11** | **Reliability & operations** | 🟡 12/14 — PRs #1–#11 shipped probes, boot migrations, JSON logs, runbooks, backups + restore drill, sentinel, GlitchTip backend tracking, metrics + Grafana, staging, live alert channel; 2 open (owner-blocked) |
 | 12–20 | Forward plan (below) | ⬜ not started —115 open milestones |
 
-### Remaining milestones:119 open (inventory2026-10-20)
+### Remaining milestones:118 open (inventory2026-10-20)
 
 | Phase | Open | Theme |
 |---|---|---|
 | 10 | 1 | mocked-Paystack Playwright full loop |
-| 11 | 3 | off-box backups · error tracking frontend · alert-channel key (all owner-blocked) |
+| 11 | 2 | off-box backups · error tracking frontend (owner-blocked) |
 | 12 | 12 | admin, moderation & disputes |
 | 13 | 12 | production money: payouts, refunds, reconciliation, receipts |
 | 14 | 12 | trust & safety: verification, fraud, reporting |
@@ -58,11 +58,10 @@ docker compose ps                                            # stack healthy
 | 19 | 12 | mobile, accessibility & polish |
 | 20 | 15 | launch |
 
-**Blocked on the owner (3)** — nothing else waits on a human:
+**Blocked on the owner (2)** — nothing else waits on a human *(Brevo key closed 2026-10-20)*:
 
-1. **Brevo API key** → closes Phase 11 alert channel (also enables contact-form mail).
-2. **DNS `glitchtip.sckoll.com` → box IP** → activates frontend error tracking + sourcemap upload.
-3. **Off-box storage creds** (R2/B2/rclone) → activates nightly off-box backup sync.
+1. **DNS `glitchtip.sckoll.com` → box IP** → activates frontend error tracking + sourcemap upload.
+2. **Off-box storage creds** (R2/B2/rclone) → activates nightly off-box backup sync.
 
 **2026-10-20 — Signup flow replanned (owner-directed UX change, not a phase milestone):**
 the post-signup `/profile/setup` wall (14 fields, including payout bank details, role re-ask,
@@ -190,7 +189,7 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
     `docs/runbooks/error-tracking.md`)
 - [x] Health endpoints: `/healthz` (liveness, touches nothing) + `/readyz` (probes the **configured** DB URL and Redis with short-lived pools; 503 + per-dependency latency on degraded). Compose `healthcheck` on the api service hits `/readyz`; 4 tests cover live/ready/503/correlation-id
 - [x] Uptime monitor: `scripts/sentinel.sh` cron every 5 min checks `www.sckoll.com`, `api.../healthz`, `api.../readyz` + an error-rate spike rule (>20 `level:50` lines / 7m). State file prevents mail storms (alert after 2 bad rounds, one per incident, recovery mail). Caveat (documented in `docs/runbooks/alerting.md`): on-box monitor cannot see whole-box downtime — off-box second layer recommended when an account exists
-- [ ] Alert channel — **mechanism shipped, channel needs a key**: sentinel composes and sends Brevo emails (alert + recovery, `ALERT_TO` recipient, `SENTINEL_TEST=1` validates end-to-end). Blocked: `BREVO_API_KEY` is **empty on the serving box** (discovered while wiring — the contact form has never actually sent mail either). Owner must provide a Brevo API key, then one test alert closes this milestone
+- [x] Alert channel — **live since 2026-10-20**: sentinel composes and sends Brevo emails (alert + recovery, `ALERT_TO` recipient). Key set on the box via host-local silent prompt (never in chat/git); real test send accepted by Brevo (`messageId` → `ALERT_TO`). This also unblocks signup verification mail and the contact form (both were silently dead without the key). The account sends for `sckoll.com` without DNS verification — SPF/DKIM alignment is an optional deliverability follow-up
 - [x] `/status` page fed by real checks: adds a "Core services (db / cache)" row reading `/readyz` (latency per dependency) alongside the existing API/auth probes
 - [x] Grafana/`prom-client` request metrics: latency p95, error rate, webhook failures —
   `/metrics` (counter + latency histogram, route-pattern labels, `unmatched` for 404s; process
