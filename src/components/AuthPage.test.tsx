@@ -1,9 +1,15 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { GOOGLE_CLIENT_ID } from "@/lib/api";
 import AuthPage from "./AuthPage";
 
-const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+const { pushMock, scriptLoaders } = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  // onLoad handlers handed to <Script> by AuthPage, so a test can fire them
+  // after mount and simulate the Google Identity Services script arriving late.
+  scriptLoaders: [] as Array<() => void>,
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
@@ -18,7 +24,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("next/script", () => ({ default: () => null }));
+vi.mock("next/script", () => ({
+  default: ({ onLoad }: { onLoad?: () => void }) => {
+    if (onLoad) scriptLoaders.push(onLoad);
+    return null;
+  },
+}));
 
 function stubFetch(body: unknown, status = 200) {
   const fn = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () =>
@@ -31,6 +42,7 @@ function stubFetch(body: unknown, status = 200) {
 afterEach(() => {
   vi.unstubAllGlobals();
   pushMock.mockReset();
+  scriptLoaders.length = 0;
 });
 
 describe("AuthPage (sign-in)", () => {
@@ -101,5 +113,27 @@ describe("AuthPage (sign-up)", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain("/v1/auth/signup");
     expect(JSON.parse(String(init?.body))).toMatchObject({ role: "client", email: "new@client.com", name: "New Client" });
+  });
+});
+
+describe("AuthPage (Google button)", () => {
+  it("renders the button even though the GIS script loads after mount", async () => {
+    const renderButton = vi.fn();
+    const initialize = vi.fn();
+
+    // Mount first: window.google is not there yet because the script is lazy.
+    render(<AuthPage mode="sign-in" />);
+    expect(renderButton).not.toHaveBeenCalled();
+
+    // The script lands late and fires onLoad — the button must appear now.
+    vi.stubGlobal("google", { accounts: { id: { initialize, renderButton } } });
+    await act(async () => {
+      for (const onLoad of [...scriptLoaders]) onLoad();
+    });
+
+    expect(initialize).toHaveBeenCalledTimes(1);
+    expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: GOOGLE_CLIENT_ID }));
+    expect(renderButton).toHaveBeenCalledTimes(1);
+    expect(renderButton.mock.calls[0]?.[0]).toBeInstanceOf(HTMLElement);
   });
 });
