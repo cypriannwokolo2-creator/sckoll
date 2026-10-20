@@ -39,15 +39,15 @@ docker compose ps                                            # stack healthy
 | 8 | Payments: Paystack ledger, webhooks, release | ✅ shipped `dfb2b3a` |
 | **9** | **Growth: semantic matching, telemetry, SEO** | ✅ shipped `afa8315` (deployed + verified 2026-10-17) |
 | **10** | **Test & CI gate** | 🟡 3/4 — CI green + merge gate enforced;1 open (mocked-Paystack full loop, carries to Phase 13) |
-| **11** | **Reliability & operations** | 🟡 10/15 — probes, boot migrations, JSON logs, runbooks, restore drill, backups, sentinel, error tracking shipped (PRs #1–#6);5 open |
-| 12–20 | Forward plan (below) | ⬜ not started —106 open milestones |
+| **11** | **Reliability & operations** | 🟡 11/14 — PRs #1–#8 shipped probes, boot migrations, JSON logs, runbooks, backups + restore drill, sentinel, GlitchTip backend tracking, metrics + Grafana, staging; 3 open (all owner-blocked) |
+| 12–20 | Forward plan (below) | ⬜ not started —115 open milestones |
 
-### Remaining milestones:121 open (inventory2026-10-18)
+### Remaining milestones:119 open (inventory2026-10-20)
 
 | Phase | Open | Theme |
 |---|---|---|
 | 10 | 1 | mocked-Paystack Playwright full loop |
-| 11 | 5 | off-box backups · error tracking frontend · alert-channel key · Grafana metrics · staging |
+| 11 | 3 | off-box backups · error tracking frontend · alert-channel key (all owner-blocked) |
 | 12 | 12 | admin, moderation & disputes |
 | 13 | 12 | production money: payouts, refunds, reconciliation, receipts |
 | 14 | 12 | trust & safety: verification, fraud, reporting |
@@ -63,6 +63,16 @@ docker compose ps                                            # stack healthy
 1. **Brevo API key** → closes Phase 11 alert channel (also enables contact-form mail).
 2. **DNS `glitchtip.sckoll.com` → box IP** → activates frontend error tracking + sourcemap upload.
 3. **Off-box storage creds** (R2/B2/rclone) → activates nightly off-box backup sync.
+
+**2026-10-20 — Signup flow replanned (owner-directed UX change, not a phase milestone):**
+the post-signup `/profile/setup` wall (14 fields, including payout bank details, role re-ask,
+no skip) was replaced with progressive-profiling **Quick start** — talent gets 3 fields
+(headline, skills as chips, location) + *Skip for now* → `/find-work`; clients get a
+"You're in" card → *Post your first project* CTA; bio/photo/availability/rate/links/payout
+stay editable on `/profile`. Verified end-to-end in a real browser against staging
+(signup→quickstart 2.96 s, quickstart→feed 0.56 s, chips/session/client-card checks green;
++8 component tests). Staging `FRONTEND_URL` now allows the local dev UI origin so UI flows
+can be browser-verified without prod (recipe in `docs/runbooks/staging.md`).
 
 Full milestone text lives in each phase section below; the tick box and its evidence land in the
 same commit, per the rules at the top.
@@ -237,7 +247,7 @@ Three earlier failed runs each caught a real defect: backend lint was silently r
 - [ ] Skills assessments: short quizzes per category, score shown on profile
 - [ ] Reference checks: request from past clients, verified via email link
 - [ ] Work history import (LinkedIn/CV paste) with "unverified" labelling
-- [ ] Profile completeness score + guided setup wizard (`/profile/setup` upgrade)
+- [ ] Profile completeness score + guided setup wizard (`/profile/setup` upgrade) — *2026-10-20: onboarding half shipped — the setup wall was replaced by a 3-field Quick start + skip (see status snapshot); this milestone remains for the completeness score/checklist surface*
 - [ ] Trust score v2: combines tenure, contracts completed, reviews, disputes, verification
 - [ ] Fraud signals: shared device/IP between buyer and talent, payment anomalies, copy-paste spam
 - [ ] Rate limits + CAPTCHA on signup, proposal spam throttling per account

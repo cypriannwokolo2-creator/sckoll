@@ -2,70 +2,68 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ApiError, api, type Profile } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { ApiError, api } from "@/lib/api";
 import Mark from "@/components/Mark";
 
+/**
+ * Post-signup quick start (replaces the old 14-field "build your profile" wall).
+ *
+ * Progressive profiling: three fields that power first matches (headline,
+ * skills, location) — or nothing at all via Skip. Bio, photo, availability,
+ * rate, links and payout details all live on /profile, editable any time.
+ * Clients skip the form entirely and get next-step CTAs instead.
+ */
 export default function ProfileSetupForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<"talent" | "client">("talent");
   const [busy, setBusy] = useState(false);
+  const [chips, setChips] = useState<string[]>([]);
+  const [seed, setSeed] = useState<{ headline: string; location: string }>({ headline: "", location: "" });
+  const chipInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api
       .me()
       .then((res) => {
-        setProfile(res.profile);
-        if (res.user.role === "client" || res.user.role === "both") setRole("client");
+        setRole(res.user.role === "client" || res.user.role === "both" ? "client" : "talent");
+        setChips(res.profile?.skills ?? []);
+        setSeed({
+          headline: res.profile?.headline ?? "",
+          location: res.profile?.location ?? "",
+        });
         if (!res.user.emailVerified) {
-          setNotice("Check your email for a confirmation link — you can set up your profile meanwhile.");
+          setNotice("Check your email for a confirmation link — your workspace is ready meanwhile.");
         }
       })
       .catch(() => router.push("/sign-in"))
       .finally(() => setLoading(false));
   }, [router]);
 
+  function addChips(raw: string, prev: string[]) {
+    const parts = raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    return [...new Set([...prev, ...parts])].slice(0, 20);
+  }
+
   async function onSubmit(form: FormData) {
     setError(null);
     setBusy(true);
     try {
-      const skills = String(form.get("skills") ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .slice(0, 30);
-      const links: Record<string, string> = {};
-      for (const key of ["website", "github", "linkedin"] as const) {
-        const value = String(form.get(key) ?? "").trim();
-        if (value) links[key] = value;
-      }
-      const avatar = String(form.get("avatarUrl") ?? "").trim();
-      const payoutAccount = {
-        bankCode: String(form.get("bankCode") ?? "").trim(),
-        accountNumber: String(form.get("accountNumber") ?? "").trim(),
-        accountName: String(form.get("accountName") ?? "").trim(),
-      };
-      const res = await api.patchProfile({
+      await api.patchProfile({
         role,
-        headline: String(form.get("headline") ?? "") || undefined,
-        bio: String(form.get("bio") ?? "") || undefined,
-        location: String(form.get("location") ?? "") || undefined,
-        availability: String(form.get("availability") ?? "") || undefined,
-        hourlyRate: String(form.get("hourlyRate") ?? "") || undefined,
-        ...(avatar ? { avatarUrl: avatar } : {}),
-        skills,
-        ...(Object.keys(links).length > 0 ? { links } : {}),
-        ...((payoutAccount.bankCode || payoutAccount.accountNumber || payoutAccount.accountName) ? { payoutAccount } : {}),
+        headline: String(form.get("headline") ?? "").trim() || undefined,
+        location: String(form.get("location") ?? "").trim() || undefined,
+        skills: chips,
       });
-      setProfile(res.profile);
-      router.push("/profile");
+      router.push("/find-work");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not save your profile.");
-    } finally {
       setBusy(false);
     }
   }
@@ -79,7 +77,7 @@ export default function ProfileSetupForm() {
             <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
           </Link>
         </div>
-        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Loading your workspace…</p>
+        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Preparing your workspace…</p>
       </main>
     );
   }
@@ -95,81 +93,91 @@ export default function ProfileSetupForm() {
       <section className="sckoll-auth-layout">
         <div className="sckoll-auth-message">
           <p className="sckoll-kicker">Step 2 of 2</p>
-          <h1>Shape your signal.</h1>
-          <p>This is what matching ranks you on. You can edit it any time.</p>
+          <h1>{role === "client" ? "You’re in." : "Let’s get you matching."}</h1>
+          <p>
+            {role === "client"
+              ? "Start a project to receive proposals, or look around first."
+              : "Three fields power your first matches. The rest can wait."}
+          </p>
         </div>
         <div className="sckoll-auth-card">
-          <div className="sckoll-auth-card-heading">
-            <p className="sckoll-kicker">Your profile</p>
-            <h2>Build your profile</h2>
-          </div>
           {notice && <p className="sckoll-auth-success">{notice}</p>}
           {error && <p className="sckoll-auth-error">{error}</p>}
-          <div className="sckoll-role-switch" role="tablist" aria-label="Account type">
-            <button type="button" className={role === "talent" ? "active" : ""} onClick={() => setRole("talent")}>
-              I want to find work
-            </button>
-            <button type="button" className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>
-              I want to hire
-            </button>
-          </div>
-          <form className="sckoll-auth-form" action={(f) => void onSubmit(f)}>
-            <label>
-              Headline
-              <input name="headline" placeholder="Senior backend engineer" defaultValue={profile?.headline ?? ""} />
-            </label>
-            <label>
-              Photo URL
-              <input name="avatarUrl" type="url" placeholder="https://…" defaultValue={profile?.avatarUrl ?? ""} />
-            </label>
-            <label>
-              Bio
-              <textarea name="bio" rows={3} placeholder="What you do best, in a few lines" defaultValue={profile?.bio ?? ""} />
-            </label>
-            <label>
-              Skills (comma separated)
-              <input name="skills" placeholder="react, postgres, technical writing" defaultValue={(profile?.skills ?? []).join(", ")} />
-            </label>
-            <label>
-              Availability
-              <input name="availability" placeholder="Immediate / 2 weeks notice" defaultValue={profile?.availability ?? ""} />
-            </label>
-            <label>
-              Location
-              <input name="location" placeholder="Remote / Lagos / London" defaultValue={profile?.location ?? ""} />
-            </label>
-            <label>
-              Hourly rate
-              <input name="hourlyRate" placeholder="$45/hr" defaultValue={profile?.hourlyRate ?? ""} />
-            </label>
-            <label>
-              Website
-              <input name="website" type="url" placeholder="https://your-portfolio.com" defaultValue={profile?.links?.website ?? ""} />
-            </label>
-            <label>
-              GitHub
-              <input name="github" type="url" placeholder="https://github.com/you" defaultValue={profile?.links?.github ?? ""} />
-            </label>
-            <label>
-              LinkedIn
-              <input name="linkedin" type="url" placeholder="https://linkedin.com/in/you" defaultValue={profile?.links?.linkedin ?? ""} />
-            </label>
-            <label>
-              Payout bank code (e.g. 058 for GTB)
-              <input name="bankCode" placeholder="058" defaultValue={profile?.payoutAccount?.bankCode ?? ""} />
-            </label>
-            <label>
-              Payout account number
-              <input name="accountNumber" inputMode="numeric" placeholder="0123456789" defaultValue={profile?.payoutAccount?.accountNumber ?? ""} />
-            </label>
-            <label>
-              Payout account name
-              <input name="accountName" placeholder="Account holder name" defaultValue={profile?.payoutAccount?.accountName ?? ""} />
-            </label>
-            <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
-              {busy ? "Saving…" : "Save and continue"} <span>↗</span>
-            </button>
-          </form>
+          {role === "client" ? (
+            <div className="sckoll-quickstart">
+              <p className="sckoll-quickstart-lede">
+                Your account is ready. Post a project and matching talent will send proposals — you can
+                flesh out your workspace profile later.
+              </p>
+              <Link href="/post-project" className="sckoll-button sckoll-button-dark">
+                Post your first project <span>↗</span>
+              </Link>
+              <Link href="/profile" className="sckoll-quickstart-skip">
+                Go to my workspace →
+              </Link>
+            </div>
+          ) : (
+            <form className="sckoll-auth-form" action={(f) => void onSubmit(f)}>
+              <div className="sckoll-auth-card-heading">
+                <p className="sckoll-kicker">Quick start · 10 seconds</p>
+                <h2>Shape your signal</h2>
+              </div>
+              <label>
+                Headline
+                <input name="headline" placeholder="Senior backend engineer" defaultValue={seed.headline} />
+              </label>
+              <label>
+                Skills
+                <div className="sckoll-chips" onClick={() => chipInput.current?.focus()}>
+                  {chips.map((chip) => (
+                    <span key={chip} className="sckoll-chip">
+                      {chip}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${chip}`}
+                        onClick={() => setChips((prev) => prev.filter((c) => c !== chip))}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    ref={chipInput}
+                    className="sckoll-chips-input"
+                    placeholder={chips.length === 0 ? "react, postgres, technical writing" : "Add a skill…"}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.includes(",")) {
+                        setChips((prev) => addChips(value, prev));
+                        e.target.value = "";
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      const el = e.currentTarget;
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        const value = el.value;
+                        setChips((prev) => addChips(value, prev));
+                        el.value = "";
+                      } else if (e.key === "Backspace" && el.value === "" && chips.length > 0) {
+                        setChips((prev) => prev.slice(0, -1));
+                      }
+                    }}
+                  />
+                </div>
+              </label>
+              <label>
+                Location
+                <input name="location" placeholder="Remote / Lagos / London" defaultValue={seed.location} />
+              </label>
+              <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
+                {busy ? "Starting…" : "Start matching"} <span>↗</span>
+              </button>
+              <Link href="/find-work" className="sckoll-quickstart-skip">
+                Skip for now — just show me the feed →
+              </Link>
+            </form>
+          )}
         </div>
       </section>
     </main>

@@ -44,6 +44,31 @@ Previews build the frontend against prod API URLs by default; UI-only changes
 are safe to review there. Anything needing a staging API goes through the
 compose stack above.
 
+## Run the real UI against the staging API (browser verification)
+
+For flows that must exercise both UI and API without touching prod (e.g.
+signup → onboarding → feed), serve the frontend locally pointed at staging:
+
+```bash
+cd sckoll
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8111 npx next build
+npx next start --hostname 127.0.0.1 -p 3000   # open http://127.0.0.1:3000
+```
+
+Gotchas baked into the stack:
+
+- The origin **must be `127.0.0.1`, not `localhost`** — the session cookie is
+  `SameSite=Lax` and host-only for `127.0.0.1`, so `localhost:3000` would be
+  cross-site to the API and silently logged out.
+- `FRONTEND_URL` in `docker-compose.staging.yml` allows
+  `http://127.0.0.1:3000` as a CORS origin (credentialed fetches from the
+  local UI); `SITE_URL` covers API-origin calls.
+- Accounts created this way land in the `sckoll_staging` DB only — the prod
+  user table stays untouched (isolation check below still applies).
+
+Stop with `pkill -f "next start"` when done; the default `npx next build`
+in CI/gates re-bakes production API URLs.
+
 ## Verify isolation after any staging run
 
 ```bash

@@ -2324,3 +2324,92 @@ input {
     background-position: -200% 0;
   }
 }
+
+/* --- post-signup quick start (progressive profiling) --------------------- */
+.sckoll-quickstart {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 1.5rem;
+}
+
+.sckoll-quickstart-lede {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.sckoll-quickstart .sckoll-button {
+  width: 100%;
+}
+
+.sckoll-quickstart-skip {
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0.4rem 0;
+}
+
+.sckoll-quickstart-skip:hover {
+  color: var(--acid);
+}
+
+.sckoll-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 0.55rem;
+  background: #08090a;
+  padding: 0.35rem 0.5rem;
+  cursor: text;
+}
+
+.sckoll-chips:focus-within {
+  border-color: var(--acid);
+  box-shadow: 0 0 0 3px rgba(163, 255, 0, 0.12);
+}
+
+.sckoll-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(163, 255, 0, 0.1);
+  color: var(--white);
+  border: 1px solid rgba(163, 255, 0, 0.35);
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.sckoll-chip button {
+  background: none;
+  border: 0;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.sckoll-chip button:hover {
+  color: var(--white);
+}
+
+.sckoll-auth-form .sckoll-chips-input {
+  flex: 1;
+  min-width: 8rem;
+  min-height: 2rem;
+  border: 0;
+  background: none;
+  outline: 0;
+  box-shadow: none;
+  color: var(--white);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0 0.25rem;
+}
