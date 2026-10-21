@@ -56,9 +56,11 @@ export async function buildServer(overrides?: Partial<Env>) {
   await app.register(cookie);
   // Keep the raw JSON string for HMAC-verified webhooks (Paystack).
   app.addContentTypeParser("application/json", { parseAs: "string" }, (request, body, done) => {
+    const raw = body as string;
     try {
-      (request as unknown as { rawBody?: string }).rawBody = body as string;
-      done(null, JSON.parse(body as string));
+      (request as unknown as { rawBody?: string }).rawBody = raw;
+      // A bodyless POST that still declares JSON is legal: treat it as {}.
+      done(null, raw.trim() ? JSON.parse(raw) : {});
     } catch (err) {
       done(err as Error, undefined);
     }

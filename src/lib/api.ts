@@ -103,7 +103,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    // Only declare JSON when there is a body: a bodyless POST that claims
+    // application/json is parsed as an empty document and rejected.
+    headers: {
+      ...(init?.body ? { "content-type": "application/json" } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {

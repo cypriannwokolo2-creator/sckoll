@@ -80,6 +80,20 @@ describe("request", () => {
     expect(JSON.parse(String(init?.body))).toEqual({ email: "a@b.com", password: "secret123" });
   });
 
+  it("does not claim a JSON body on a bodyless request", async () => {
+    const fetchMock = stubFetch(() => jsonResponse({ ok: true }));
+
+    await api.logout();
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe(`${API_URL}/v1/auth/logout`);
+    expect(init?.method).toBe("POST");
+    expect(init?.body).toBeUndefined();
+    // Declaring application/json with no body is parsed as an empty document
+    // and rejected by the API — sign-out has to go out without it.
+    expect((init?.headers as Record<string, string>)["content-type"]).toBeUndefined();
+  });
+
   it("maps error responses to ApiError with the server's message", async () => {
     stubFetch(() => jsonResponse({ error: "invalid_credentials", message: "Email or password is wrong." }, 401));
 

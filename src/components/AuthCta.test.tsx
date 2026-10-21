@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { renderWithSession } from "@/test/session";
 import AuthCta from "./AuthCta";
 
 type SessionUser = { id: string; email: string; name: string | null; role: string; emailVerified: boolean };
@@ -26,7 +27,7 @@ describe("AuthCta", () => {
   it("points a visitor at the sign-up pitch", async () => {
     stubSession(null);
 
-    render(<AuthCta href="/sign-up" label="Create your free profile" className="cta" />);
+    renderWithSession(<AuthCta href="/sign-up" label="Create your free profile" className="cta" />);
 
     const link = await screen.findByRole("link", { name: /Create your free profile/ });
     expect(link).toHaveAttribute("href", "/sign-up");
@@ -36,7 +37,7 @@ describe("AuthCta", () => {
   it("sends a signed-in member to their workspace", async () => {
     stubSession(user("talent"));
 
-    render(<AuthCta href="/sign-up" label="Create your free profile" />);
+    renderWithSession(<AuthCta href="/sign-up" label="Create your free profile" />);
 
     const link = await screen.findByRole("link", { name: /Open your workspace/ });
     expect(link).toHaveAttribute("href", "/profile");
@@ -45,7 +46,7 @@ describe("AuthCta", () => {
   it("sends a signed-in client who was pitched hiring to post a project", async () => {
     stubSession(user("client"));
 
-    render(<AuthCta href="/sign-up?role=client" label="Start a talent search" />);
+    renderWithSession(<AuthCta href="/sign-up?role=client" label="Start a talent search" />);
 
     const link = await screen.findByRole("link", { name: /Post your first project/ });
     expect(link).toHaveAttribute("href", "/post-project");
@@ -54,7 +55,7 @@ describe("AuthCta", () => {
   it("keeps a signed-in talent away from the hiring pitch", async () => {
     stubSession(user("talent"));
 
-    render(<AuthCta href="/sign-up?role=client" label="Start a talent search" />);
+    renderWithSession(<AuthCta href="/sign-up?role=client" label="Start a talent search" />);
 
     const link = await screen.findByRole("link", { name: /Open your workspace/ });
     expect(link).toHaveAttribute("href", "/profile");
@@ -63,7 +64,7 @@ describe("AuthCta", () => {
   it("honours an explicit signed-in target", async () => {
     stubSession(user("talent"));
 
-    render(
+    renderWithSession(
       <AuthCta
         href="/sign-up"
         label="Become an early story"
@@ -79,7 +80,7 @@ describe("AuthCta", () => {
   it("renders children after the label", async () => {
     stubSession(null);
 
-    render(
+    renderWithSession(
       <AuthCta href="/sign-up" label="Sign up" className="cta">
         <span>↗</span>
       </AuthCta>,
