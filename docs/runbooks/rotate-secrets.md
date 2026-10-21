@@ -8,7 +8,7 @@ When: a secret may have leaked, on a schedule (quarterly), or after staff/toolin
 |---|---|---|
 | `AUTH_SECRET` | `backend/.env` (host box) | API session signing |
 | `PAYSTACK_SECRET_KEY` | `backend/.env` | Paystack charges + webhook verification |
-| `GOOGLE_CLIENT_ID` / `SECRET` | `backend/.env` | Google sign-in |
+| `GOOGLE_CLIENT_ID` / `SECRET` / `GOOGLE_REDIRECT_URI` | `backend/.env` | Google sign-in |
 | `BREVO_API_KEY` | `backend/.env` | transactional mail |
 | `DATABASE_URL` password | `backend/.env` + compose `.env` (`POSTGRES_PASSWORD`) | API, seeds, CI uses its own |
 | Vercel env (`NEXT_PUBLIC_API_URL`, …) | Vercel project settings | frontend build |
@@ -31,8 +31,9 @@ When: a secret may have leaked, on a schedule (quarterly), or after staff/toolin
   container keeps its own `POSTGRES_PASSWORD` init; existing data is unaffected.
 - **Vercel env**: update in project settings, then redeploy (`master` push or "Redeploy") —
   `NEXT_PUBLIC_*` values are baked at build time.
-- **Google client** (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`): reissue the OAuth client
-  in the console, update both lines in `backend/.env`, recreate `api` — full procedure and
+- **Google client** (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`):
+  reissue the OAuth client in the console (with the redirect URI listed), update the three
+  lines in `backend/.env`, recreate `api` — full procedure and
   the exact console fields in `docs/runbooks/google-signin.md`. Sessions are unaffected.
 
 ## After rotation

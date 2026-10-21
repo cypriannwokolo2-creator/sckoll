@@ -2,78 +2,70 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Script from "next/script";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, GOOGLE_CLIENT_ID, api } from "@/lib/api";
+import { Suspense, useEffect, useState } from "react";
+import { ApiError, api, googleSignInUrl } from "@/lib/api";
 import Mark from "@/components/Mark";
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (opts: { client_id: string; callback: (res: { credential: string }) => void }) => void;
-          renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void;
-        };
-      };
-    };
-  }
-}
+/** Copy for each failure the API's Google callback can bounce back with. */
+const GOOGLE_ERROR_COPY: Record<string, string> = {
+  google_cancelled: "Google sign-in was cancelled.",
+  google_failed: "Google sign-in failed. Please try again.",
+  google_state: "Your Google sign-in link expired. Please try again.",
+  google_unverified: "That Google email is not verified, so it cannot be linked to an account.",
+  google_disabled: "Google sign-in is not available right now.",
+};
 
-function GoogleButton({ role }: { role: "talent" | "client" }) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  // The GIS script loads lazily, so window.google is usually still undefined on
-  // mount. This flag flips from the script's onLoad so the effect re-runs and
-  // renders the button — without it the button never appears at all.
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const rendered = useRef(false);
-  const holder = useRef<HTMLDivElement>(null);
-
-  const onCredential = useCallback(
-    async (res: { credential: string }) => {
-      setError(null);
-      try {
-        await api.google({ idToken: res.credential, role });
-        router.push("/profile/setup");
-      } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Google sign-in failed.");
-      }
-    },
-    [role, router],
-  );
+/**
+ * Google sign-in is a full-page redirect through the API: no third-party
+ * script, no popup, no client id in the browser. The API owns the OAuth
+ * client, exchanges the code server-side and sets the session cookie.
+ */
+function GoogleButton({ role, mode }: { role: "talent" | "client"; mode: "sign-in" | "sign-up" }) {
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google || !holder.current || rendered.current) return;
-    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onCredential });
-    window.google.accounts.id.renderButton(holder.current, { theme: "filled_black", size: "large", width: 320 });
-    rendered.current = true;
-  }, [onCredential, scriptLoaded]);
+    let alive = true;
+    api
+      .config()
+      .then((config) => {
+        if (alive) setEnabled(config.google_enabled);
+      })
+      .catch(() => {
+        /* leave the button hidden: the API decides what is available */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <>
-        <div className="sckoll-auth-divider">
-          <span>or continue with</span>
-        </div>
-        <p className="sckoll-auth-note" style={{ marginTop: 0 }}>
-          Google sign-in activates once the site owner connects it — email sign-in works now.
-        </p>
-      </>
-    );
-  }
+  if (!enabled) return null;
+
   return (
     <>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
-        onLoad={() => setScriptLoaded(true)}
-      />
       <div className="sckoll-auth-divider">
         <span>or continue with</span>
       </div>
-      {error && <p className="sckoll-auth-error">{error}</p>}
-      <div ref={holder} className="sckoll-google-holder" />
+      <a className="sckoll-google-link" href={googleSignInUrl(mode, role)}>
+        <svg className="sckoll-google-link-mark" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+          <path
+            fill="#4285F4"
+            d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+          />
+          <path
+            fill="#34A853"
+            d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z"
+          />
+          <path
+            fill="#EA4335"
+            d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+          />
+        </svg>
+        Continue with Google
+      </a>
     </>
   );
 }
@@ -85,8 +77,12 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const [role, setRole] = useState<"talent" | "client">(
     params.get("role") === "client" ? "client" : "talent",
   );
+  // The API bounces a failed Google flow back here with ?error=<code>. It is
+  // derived during render, so it shows immediately and needs no effect.
+  const callbackError = GOOGLE_ERROR_COPY[params.get("error") ?? ""] ?? null;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const shownError = error ?? callbackError;
 
   async function onSubmit(form: FormData) {
     setError(null);
@@ -142,7 +138,7 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           </button>
         </div>
       )}
-      {error && <p className="sckoll-auth-error">{error}</p>}
+      {shownError && <p className="sckoll-auth-error">{shownError}</p>}
       <form
         className="sckoll-auth-form"
         action={(form) => {
@@ -188,7 +184,7 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           Forgot your password? <Link href="/reset-password">Reset it</Link>
         </p>
       )}
-      <GoogleButton role={role} />
+      <GoogleButton role={role} mode={mode} />
       <p className="sckoll-auth-switch">
         {isSignUp ? "Already have an account?" : "New to Sckoll?"}{" "}
         <Link href={isSignUp ? "/sign-in" : "/sign-up"}>{isSignUp ? "Sign in" : "Create an account"}</Link>

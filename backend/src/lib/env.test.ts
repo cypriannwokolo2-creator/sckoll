@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isGoogleConfigured, loadEnv } from "../env.js";
-import { createGoogleVerifier } from "./google.js";
+import { createGoogleClient } from "./google-client.js";
 
 const baseEnv = {
   DATABASE_URL: "postgres://sckoll:sckoll@localhost:5435/sckoll",
@@ -11,13 +11,25 @@ describe("auth env + google fail-closed", () => {
   it("loads defaults with google disabled", () => {
     const env = loadEnv({ ...process.env, ...baseEnv, GOOGLE_CLIENT_ID: "" });
     expect(isGoogleConfigured(env)).toBe(false);
-    expect(createGoogleVerifier(env.GOOGLE_CLIENT_ID)).toBeUndefined();
+    expect(
+      createGoogleClient({
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        redirectUri: env.GOOGLE_REDIRECT_URI,
+      }),
+    ).toBeUndefined();
   });
 
-  it("enables google when a client id is present", () => {
+  it("enables google when the client id, secret and redirect uri are present", () => {
     const env = loadEnv({ ...process.env, ...baseEnv, GOOGLE_CLIENT_ID: "test.apps.googleusercontent.com" });
-    expect(isGoogleConfigured(env)).toBe(true);
-    expect(createGoogleVerifier(env.GOOGLE_CLIENT_ID)).toBeDefined();
+    expect(isGoogleConfigured(env)).toBe(false);
+    expect(
+      createGoogleClient({
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        redirectUri: env.GOOGLE_REDIRECT_URI,
+      }),
+    ).toBeUndefined();
   });
 
   it("rejects configs without secrets", () => {

@@ -1,11 +1,14 @@
 /** Typed client for the Sckoll backend (api.sckoll.com in prod, localhost:8110 in dev). */
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8110").replace(/\/$/, "");
-// Public Google OAuth client ID for the Sckoll web client — not a secret: it ships
-// inside the browser bundle by design (Google console value). The NEXT_PUBLIC_ env
-// var still overrides it for forks/local builds.
-export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
-  "165282566842-crmpgj3eumceg5ial5ridmhvfr307c62.apps.googleusercontent.com";
+// Google sign-in runs as a full-page redirect through the API (authorization
+// code + PKCE). The browser only needs the API's start URL — no client id, no
+// secret, no third-party script — so the API decides whether the feature is
+// enabled and the frontend just links to it.
+export function googleSignInUrl(mode: "sign-in" | "sign-up", role: string): string {
+  const params = new URLSearchParams({ mode, role });
+  return `${API_URL}/v1/auth/google?${params.toString()}`;
+}
 
 export interface PublicUser {
   id: string;
@@ -118,8 +121,6 @@ export const api = {
     }),
   login: (input: { email: string; password: string }) =>
     request<{ ok: boolean; user: PublicUser }>("/v1/auth/login", { method: "POST", body: JSON.stringify(input) }),
-  google: (input: { idToken: string; role?: string }) =>
-    request<{ ok: boolean; user: PublicUser }>("/v1/auth/google", { method: "POST", body: JSON.stringify(input) }),
   logout: () => request<{ ok: boolean }>("/v1/auth/logout", { method: "POST" }),
   me: () => request<{ ok: boolean; user: PublicUser; profile: Profile | null }>("/v1/me"),
   verify: (input: { token: string; email: string }) =>

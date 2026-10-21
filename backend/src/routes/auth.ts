@@ -1,11 +1,23 @@
 import type { FastifyInstance } from "fastify";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getDb } from "../db/client.js";
-import { passwordResetTokens, profiles, users, verificationTokens } from "../db/schema.js";
+import { passwordResetTokens, profiles, users, verificationTokens, type User } from "../db/schema.js";
 import type { Env } from "../env.js";
 import { resolveSender, sendBrevoEmail } from "../lib/brevo.js";
-import { createGoogleVerifier, type VerifyIdToken } from "../lib/google.js";
+import { createGoogleClient, type GoogleClient } from "../lib/google-client.js";
+import {
+  createPkce,
+  OAUTH_STATE_TTL_MS,
+  safeFrom,
+  signOAuthCookie,
+  signState,
+  verifyOAuthCookie,
+  verifyState,
+  type AuthMode,
+  type SignupRole,
+} from "../lib/oauth.js";
 import { hashPassword, hashToken, newOpaqueToken, normalizeEmail, verifyPassword } from "../lib/password.js";
 import { notify } from "./notifications.js";
 import {
@@ -33,10 +45,15 @@ const LoginSchema = z.object({
   password: z.string().min(1).max(128),
 });
 
-const GoogleSchema = z.object({
-  idToken: z.string().min(1),
-  role: RoleSchema.optional(),
+const GoogleStartSchema = z.object({
+  mode: z.enum(["sign-in", "sign-up"]).default("sign-in"),
+  role: z.enum(["talent", "client"]).default("talent"),
 });
+
+/** Cookie holding the flow's secret parts (nonce + PKCE verifier). */
+const OAUTH_COOKIE = "sckoll-oauth";
+/** Cookie lifetime: the whole consent round-trip must fit inside it. */
+const OAUTH_COOKIE_TTL_SECONDS = 600;
 
 function usernameFromEmail(email: string): string {
   const base = email
@@ -79,11 +96,85 @@ async function sendMail(
   });
 }
 
-export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: { googleVerifier?: VerifyIdToken }): Promise<void> {
-  const googleVerifier = opts?.googleVerifier ?? createGoogleVerifier(env.GOOGLE_CLIENT_ID);
+/**
+ * Link a Google identity to an existing account, or create a new user.
+ *
+ * An unverified provider email must never attach to an existing account, so
+ * that case is refused outright rather than silently creating a second user.
+ */
+async function provisionGoogleUser(
+  env: Env,
+  profile: { sub: string; email: string; emailVerified: boolean; name?: string },
+  role: SignupRole,
+): Promise<{ ok: true; user: User } | { ok: false; reason: "unverified" | "missing" }> {
+  const email = normalizeEmail(profile.email);
+  const db = getDb(env.DATABASE_URL);
+  let user = (await db.select().from(users).where(eq(users.googleSub, profile.sub)).limit(1))[0];
+  if (!user) {
+    const byEmail = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+    if (byEmail) {
+      if (!byEmail.googleSub && profile.emailVerified) {
+        const updated = await db
+          .update(users)
+          .set({
+            googleSub: profile.sub,
+            emailVerified: byEmail.emailVerified || profile.emailVerified,
+            name: byEmail.name ?? profile.name ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, byEmail.id))
+          .returning();
+        user = updated[0] ?? byEmail;
+      } else if (!byEmail.googleSub) {
+        // Same email, but Google has not verified it: refuse to link or sign in.
+        return { ok: false, reason: "unverified" };
+      } else {
+        user = byEmail;
+      }
+    } else {
+      const inserted = await db
+        .insert(users)
+        .values({
+          email,
+          name: profile.name ?? usernameFromEmail(email),
+          googleSub: profile.sub,
+          role,
+          emailVerified: profile.emailVerified,
+        })
+        .returning();
+      user = inserted[0];
+      if (user) {
+        await db.insert(profiles).values({ userId: user.id }).onConflictDoNothing();
+        await notify(env, {
+          type: "user.welcome",
+          userId: user.id,
+          title: "Welcome to Sckoll",
+          body: user.role === "client" ? "Post your first project or search talent." : "Complete your profile and review your matches.",
+          link: "/profile/setup",
+          requireVerifiedEmail: false,
+          email: {
+            ...welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
+            tags: ["welcome"],
+          },
+        });
+      }
+    }
+  }
+  if (!user) return { ok: false, reason: "missing" };
+  return { ok: true, user };
+}
+
+export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: { googleClient?: GoogleClient }): Promise<void> {
+  const googleClient =
+    opts?.googleClient ??
+    createGoogleClient({
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      redirectUri: env.GOOGLE_REDIRECT_URI,
+    });
 
   app.get("/v1/auth/config", async () => ({
-    google_enabled: Boolean(googleVerifier),
+    google_enabled: Boolean(googleClient),
     email_password_enabled: true,
   }));
 
@@ -142,80 +233,93 @@ export async function registerAuthRoutes(app: FastifyInstance, env: Env, opts?: 
     return reply.send({ ok: true, user: publicUser(user) });
   });
 
-  // POST /v1/auth/google
-  app.post("/v1/auth/google", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
-    if (!googleVerifier) {
+  /**
+   * GET /v1/auth/google — start the redirect flow.
+   *
+   * The browser is bounced to Google's consent screen. We keep the two secret
+   * parts (a nonce and the PKCE verifier) in an HttpOnly cookie and only put
+   * a signed, expiring state parameter in the URL.
+   */
+  app.get("/v1/auth/google", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
+    if (!googleClient) {
       return reply.code(503).send({ error: "google_disabled", message: "Google sign-in is not configured." });
     }
-    const parsed = GoogleSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: "invalid_request", message: "A Google ID token is required." });
-    }
+    const parsed = GoogleStartSchema.safeParse(request.query ?? {});
+    const mode: AuthMode = parsed.success ? parsed.data.mode : "sign-in";
+    const role: SignupRole = parsed.success ? parsed.data.role : "talent";
+
+    const { verifier, challenge } = createPkce();
+    const nonce = randomBytes(16).toString("hex");
+    const state = signState(env.AUTH_SECRET, {
+      n: nonce,
+      m: mode,
+      r: role,
+      e: Date.now() + OAUTH_STATE_TTL_MS,
+    });
+    const cookieValue = signOAuthCookie(env.AUTH_SECRET, { n: nonce, v: verifier });
+
+    void reply.header(
+      "Set-Cookie",
+      `${OAUTH_COOKIE}=${encodeURIComponent(cookieValue)}; Path=/v1/auth; HttpOnly; SameSite=Lax; Max-Age=${OAUTH_COOKIE_TTL_SECONDS}${
+        env.SITE_URL.startsWith("https://") ? "; Secure" : ""
+      }`,
+    );
+    return reply.redirect(googleClient.authorizeUrl({ state, codeChallenge: challenge }), 302);
+  });
+
+  /**
+   * GET /v1/auth/google/callback — finish the redirect flow.
+   *
+   * Google sends the browser here with ?code=...&state=... (or ?error=...).
+   * We exchange the code server-side (the client secret never leaves this
+   * host), create the session, and bounce the user back into the app.
+   */
+  app.get("/v1/auth/google/callback", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const frontend = env.FRONTEND_URL.replace(/\/$/, "");
+    const query = (request.query ?? {}) as { code?: string; state?: string; error?: string };
+    const state = verifyState(env.AUTH_SECRET, query.state);
+    const failTo = (reason: string) =>
+      reply.redirect(`${frontend}${safeFrom(state?.m)}?error=${encodeURIComponent(reason)}`, 302);
+
+    if (!googleClient) return failTo("google_disabled");
+    // The user pressed "Cancel" on Google's consent screen.
+    if (query.error) return failTo("google_cancelled");
+    if (!state) return failTo("google_state");
+    if (!query.code) return failTo("google_failed");
+
+    // The cookie proves this callback belongs to the browser that started the
+    // flow, and carries the PKCE verifier needed to redeem the code.
+    const rawCookie = request.cookies?.[OAUTH_COOKIE];
+    const cookie = verifyOAuthCookie(env.AUTH_SECRET, rawCookie ? decodeURIComponent(rawCookie) : undefined);
+    if (!cookie || cookie.n !== state.n) return failTo("google_state");
+
+    // Always clear the flow cookie, whatever happens next.
+    void reply.header(
+      "Set-Cookie",
+      `${OAUTH_COOKIE}=; Path=/v1/auth; HttpOnly; SameSite=Lax; Max-Age=0${
+        env.SITE_URL.startsWith("https://") ? "; Secure" : ""
+      }`,
+    );
+
     let profile;
     try {
-      profile = await googleVerifier(parsed.data.idToken);
+      profile = await googleClient.exchangeCode({
+        code: query.code,
+        codeVerifier: cookie.v,
+        redirectUri: env.GOOGLE_REDIRECT_URI,
+      });
     } catch {
-      return reply.code(401).send({ error: "google_failed", message: "Google sign-in failed." });
+      return failTo("google_failed");
     }
-    const email = normalizeEmail(profile.email);
-    const db = getDb(env.DATABASE_URL);
-    let user = (await db.select().from(users).where(eq(users.googleSub, profile.sub)).limit(1))[0];
-    if (!user) {
-      const byEmail = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
-      if (byEmail) {
-        // Only auto-link a Google identity when Google confirms the email.
-        // An unverified provider email must never attach to an existing account.
-        if (!byEmail.googleSub && profile.emailVerified) {
-          const updated = await db
-            .update(users)
-            .set({
-              googleSub: profile.sub,
-              emailVerified: byEmail.emailVerified || profile.emailVerified,
-              name: byEmail.name ?? profile.name ?? null,
-              updatedAt: new Date(),
-            })
-            .where(eq(users.id, byEmail.id))
-            .returning();
-          user = updated[0] ?? byEmail;
-        } else if (!byEmail.googleSub) {
-          // Same email, but Google has not verified it: refuse to link or sign in.
-          return reply.code(401).send({ error: "google_failed", message: "Google sign-in failed." });
-        } else {
-          user = byEmail;
-        }
-      } else {
-        const inserted = await db
-          .insert(users)
-          .values({
-            email,
-            name: profile.name ?? usernameFromEmail(email),
-            googleSub: profile.sub,
-            role: parsed.data.role ?? "talent",
-            emailVerified: profile.emailVerified,
-          })
-          .returning();
-        user = inserted[0];
-        if (user) {
-          await db.insert(profiles).values({ userId: user.id }).onConflictDoNothing();
-          await notify(env, {
-            type: "user.welcome",
-            userId: user.id,
-            title: "Welcome to Sckoll",
-            body: user.role === "client" ? "Post your first project or search talent." : "Complete your profile and review your matches.",
-            link: "/profile/setup",
-            requireVerifiedEmail: false,
-            email: {
-              ...welcomeTemplate({ name: user.name, role: user.role, appUrl: `${env.SITE_URL.replace(/\/$/, "")}/profile/setup` }),
-              tags: ["welcome"],
-            },
-          });
-        }
-      }
+
+    const provisioned = await provisionGoogleUser(env, profile, state.r);
+    if (!provisioned.ok) {
+      return failTo(provisioned.reason === "unverified" ? "google_unverified" : "google_failed");
     }
-    if (!user) return reply.code(500).send({ error: "server_error", message: "Could not sign in with Google." });
-    const session = await createSession(env, user.id);
+
+    const session = await createSession(env, provisioned.user.id);
     void reply.header("Set-Cookie", sessionCookie(session.token, env.SITE_URL));
-    return reply.send({ ok: true, user: publicUser(user) });
+    return reply.redirect(`${frontend}/profile/setup`, 302);
   });
 
   // POST /v1/auth/logout

@@ -9,7 +9,11 @@ const EnvSchema = z.object({
   API_URL: z.string().url().default("https://api.sckoll.com"),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
-  GOOGLE_CLIENT_SECRET: z.string().optional().default(""), // server-only; never returned by any route, never logged, never sent to the frontend (the button flow verifies ID tokens without it)
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(""), // server-only; never returned by any route, never logged, never sent to the frontend
+  // Where Google sends the browser back to after consent. Must match an
+  // "Authorized redirect URI" on the OAuth client exactly, or Google refuses
+  // the request before the user ever sees a consent screen.
+  GOOGLE_REDIRECT_URI: z.string().optional().default(""),
   PAYSTACK_SECRET_KEY: z.string().optional().default(""),
   BREVO_API_KEY: z.string().optional().default(""),
   BREVO_FROM_SECURITY: z.string().default("Sckoll <no-reply@sckoll.com>"),
@@ -32,6 +36,17 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return parsed.data;
 }
 
-export function isGoogleConfigured(env: Pick<Env, "GOOGLE_CLIENT_ID">): boolean {
-  return env.GOOGLE_CLIENT_ID.trim().length > 0;
+/**
+ * Google sign-in needs a client id, a client secret (the code exchange is a
+ * confidential-client call) and a redirect URI. Anything less cannot
+ * complete the flow, so we report it as disabled rather than half-working.
+ */
+export function isGoogleConfigured(
+  env: Pick<Env, "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "GOOGLE_REDIRECT_URI">,
+): boolean {
+  return Boolean(
+    env.GOOGLE_CLIENT_ID.trim() &&
+      env.GOOGLE_CLIENT_SECRET.trim() &&
+      env.GOOGLE_REDIRECT_URI.trim(),
+  );
 }
