@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "@/lib/use-session";
+import { useSession } from "@/lib/session";
 
 /**
  * The auth slot of a nav row.

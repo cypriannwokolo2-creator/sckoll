@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { renderWithSession } from "@/test/session";
 import AuthNavActions from "./AuthNavActions";
 
 type SessionUser = { id: string; email: string; name: string | null; role: string; emailVerified: boolean };
@@ -30,7 +31,7 @@ describe("AuthNavActions", () => {
   it("offers sign-in and sign-up to a visitor", async () => {
     stubSession(null);
 
-    render(<AuthNavActions />);
+    renderWithSession(<AuthNavActions />);
 
     expect(await screen.findByRole("link", { name: "Log in" })).toHaveAttribute("href", "/sign-in");
     expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/sign-up");
@@ -39,7 +40,7 @@ describe("AuthNavActions", () => {
   it("offers the workspace to a signed-in member instead", async () => {
     stubSession(USER);
 
-    render(<AuthNavActions />);
+    renderWithSession(<AuthNavActions />);
 
     const workspace = await screen.findByRole("link", { name: "Your workspace" });
     expect(workspace).toHaveAttribute("href", "/profile");
@@ -50,7 +51,7 @@ describe("AuthNavActions", () => {
   it("honours a custom sign-up label and href", async () => {
     stubSession(null);
 
-    render(<AuthNavActions signUpLabel="Sign up free" signUpHref="/sign-up?role=client" />);
+    renderWithSession(<AuthNavActions signUpLabel="Sign up free" signUpHref="/sign-up?role=client" />);
 
     expect(await screen.findByRole("link", { name: "Sign up free" })).toHaveAttribute(
       "href",
@@ -61,7 +62,7 @@ describe("AuthNavActions", () => {
   it("keeps the custom link class on the workspace link", async () => {
     stubSession(USER);
 
-    render(<AuthNavActions linkClassName="sckoll-login" />);
+    renderWithSession(<AuthNavActions linkClassName="sckoll-login" />);
 
     await waitFor(() =>
       expect(screen.getByRole("link", { name: "Your workspace" })).toHaveClass("sckoll-login"),

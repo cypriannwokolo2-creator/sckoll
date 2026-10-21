@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "@/lib/use-session";
+import { useSession } from "@/lib/session";
 
 /**
  * A call-to-action that adapts to the session: the sign-up pitch for

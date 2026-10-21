@@ -99,9 +99,54 @@ test("an authenticated visitor never sees the auth pages or the sign-in prompts"
   await page.goto("/sign-up");
   await expect(page).toHaveURL(/\/profile/);
 
-  // And the landing page offers the workspace instead of "Log in".
+  // And the landing page is not shown to a member at all — they are taken
+  // straight to their workspace.
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Your workspace" }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Log in" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /^Sign up free$/ })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/profile/);
+});
+
+test("a signed-in member is taken off the marketing landing page", async ({ page }) => {
+  const api = process.env.E2E_API_URL ?? "http://127.0.0.1:8110";
+  const email = `landing-gate-${Date.now()}@ci.local`;
+  const signup = await page.request.post(`${api}/v1/auth/signup`, {
+    data: { email, name: "Landing Gate", password: "correct-horse-123", role: "talent" },
+  });
+  expect(signup.ok()).toBe(true);
+
+  // Visiting the app once records the routing hint the server reads.
+  await page.goto("/profile");
+  await expect(page.getByText(/Landing Gate/)).toBeVisible();
+
+  // Now the landing page should send the member to their workspace.
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/profile/);
+  await expect(page.getByRole("heading", { name: /Landing Gate/ })).toBeVisible();
+});
+
+test("a visitor still gets the marketing landing page with its sign-in prompts", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Sign up free$/ }).first()).toBeVisible();
+});
+
+test("signing out ends the session and frees the landing page", async ({ page }) => {
+  const api = process.env.E2E_API_URL ?? "http://127.0.0.1:8110";
+  const email = `signout-gate-${Date.now()}@ci.local`;
+
+  const signup = await page.request.post(`${api}/v1/auth/signup`, {
+    data: { email, name: "Sign Out Gate", password: "correct-horse-123", role: "talent" },
+  });
+  expect(signup.ok()).toBe(true);
+
+  await page.goto("/profile");
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  // The session must be gone, and the landing page must be reachable again.
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+
+  const me = await page.request.get(`${api}/v1/me`);
+  expect(me.status()).toBe(401);
 });

@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { API_URL } from "@/lib/api";
+import { renderWithSession } from "@/test/session";
 import AuthPage from "./AuthPage";
 
 const { pushMock, replaceMock, searchParams } = vi.hoisted(() => ({
@@ -78,7 +79,7 @@ afterEach(() => {
 
 describe("AuthPage (sign-in)", () => {
   it("renders the sign-in form with validation wired on the inputs", async () => {
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
     await screen.findByPlaceholderText("you@example.com");
 
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
@@ -93,7 +94,7 @@ describe("AuthPage (sign-in)", () => {
     const user = userEvent.setup();
     stubFetch({ error: "invalid_credentials", message: "Email or password is wrong." }, 401);
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
     await screen.findByPlaceholderText("you@example.com");
     await user.type(screen.getByPlaceholderText("you@example.com"), "a@b.com");
     await user.type(screen.getByPlaceholderText("At least 8 characters"), "wrongpass1");
@@ -107,7 +108,7 @@ describe("AuthPage (sign-in)", () => {
     const user = userEvent.setup();
     const fetchMock = stubFetch({ ok: true, user: { id: "u1" } });
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
     await screen.findByPlaceholderText("you@example.com");
     await user.type(screen.getByPlaceholderText("you@example.com"), "a@b.com");
     await user.type(screen.getByPlaceholderText("At least 8 characters"), "correct-horse");
@@ -122,7 +123,7 @@ describe("AuthPage (sign-in)", () => {
 
 describe("AuthPage (sign-up)", () => {
   it("shows the role switch and terms consent", async () => {
-    render(<AuthPage mode="sign-up" />);
+    renderWithSession(<AuthPage mode="sign-up" />);
     await screen.findByPlaceholderText("you@example.com");
 
     expect(screen.getByRole("heading", { name: "Join Sckoll" })).toBeInTheDocument();
@@ -137,7 +138,7 @@ describe("AuthPage (sign-up)", () => {
     const user = userEvent.setup();
     const fetchMock = stubFetch({ ok: true, user: { id: "u2" } });
 
-    render(<AuthPage mode="sign-up" />);
+    renderWithSession(<AuthPage mode="sign-up" />);
     await screen.findByPlaceholderText("you@example.com");
     await user.click(screen.getByRole("tab", { name: "I want to hire" }));
     await user.type(screen.getByPlaceholderText("you@example.com"), "new@client.com");
@@ -157,7 +158,7 @@ describe("AuthPage (Google button)", () => {
   it("links to the API's redirect start endpoint when Google is enabled", async () => {
     stubFetch({}, 200, { googleEnabled: true });
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
 
     const link = await screen.findByRole("link", { name: /continue with google/i });
     expect(link).toHaveAttribute("href", `${API_URL}/v1/auth/google?mode=sign-in&role=talent`);
@@ -167,7 +168,7 @@ describe("AuthPage (Google button)", () => {
     stubFetch({}, 200, { googleEnabled: true });
     const user = userEvent.setup();
 
-    render(<AuthPage mode="sign-up" />);
+    renderWithSession(<AuthPage mode="sign-up" />);
     await screen.findByRole("link", { name: /continue with google/i });
 
     await user.click(screen.getByRole("tab", { name: "I want to hire" }));
@@ -179,7 +180,7 @@ describe("AuthPage (Google button)", () => {
   it("hides the button when the API reports Google disabled", async () => {
     stubFetch({}, 200, { googleEnabled: false });
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
 
     await waitFor(() => {
       expect(screen.queryByRole("link", { name: /continue with google/i })).not.toBeInTheDocument();
@@ -190,7 +191,7 @@ describe("AuthPage (Google button)", () => {
     stubFetch({}, 200, { googleEnabled: true });
     searchParams.value = "error=google_cancelled";
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
 
     expect(await screen.findByText(/cancelled/i)).toBeInTheDocument();
   });
@@ -208,7 +209,7 @@ describe("AuthPage (signed-in visitors)", () => {
   it("sends an already-signed-in visitor to their workspace instead of the form", async () => {
     stubFetch({}, 200, { session });
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/profile"));
     expect(screen.queryByPlaceholderText("you@example.com")).not.toBeInTheDocument();
@@ -218,7 +219,7 @@ describe("AuthPage (signed-in visitors)", () => {
   it("keeps a signed-out visitor on the sign-up form", async () => {
     stubFetch({}, 200, { session: null });
 
-    render(<AuthPage mode="sign-up" />);
+    renderWithSession(<AuthPage mode="sign-up" />);
 
     expect(await screen.findByPlaceholderText("you@example.com")).toBeInTheDocument();
     expect(replaceMock).not.toHaveBeenCalled();
@@ -231,7 +232,7 @@ describe("AuthPage (signed-in visitors)", () => {
     });
     vi.stubGlobal("fetch", fn);
 
-    render(<AuthPage mode="sign-in" />);
+    renderWithSession(<AuthPage mode="sign-in" />);
 
     expect(await screen.findByPlaceholderText("you@example.com")).toBeInTheDocument();
     expect(replaceMock).not.toHaveBeenCalled();

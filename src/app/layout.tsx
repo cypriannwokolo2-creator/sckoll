@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Maven_Pro, Julius_Sans_One } from "next/font/google";
 import "./globals.css";
 import "../../sentry.client.config"; // client error tracking (no-op without NEXT_PUBLIC_SENTRY_DSN)
+import { SessionProvider } from "@/lib/session";
 
 const maven = Maven_Pro({
   variable: "--font-maven",
@@ -53,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${maven.variable} ${julius.variable} scroll-smooth`}>
       <body className="min-h-screen font-sans antialiased">
-        {children}
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import FlipWord from "@/components/FlipWord";
 import AuthCta from "@/components/AuthCta";
 import AuthNavActions from "@/components/AuthNavActions";
+import { useSession } from "@/lib/session";
+import { SIGNED_IN_HOME } from "@/lib/session-hint";
 
 const NAV_MENUS = [
   {
@@ -124,6 +127,15 @@ export default function Home() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("Find work");
+  const router = useRouter();
+  const session = useSession();
+
+  // A member does not need the marketing page: send them to their
+  // workspace. Proxy already does this before the page renders — this is
+  // the fallback for a first visit, before the routing hint exists.
+  useEffect(() => {
+    if (session.status === "signed-in") router.replace(SIGNED_IN_HOME);
+  }, [session.status, router]);
 
   const isTalentSearch = searchMode === "Find work";
 

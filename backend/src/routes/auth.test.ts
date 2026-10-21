@@ -106,6 +106,21 @@ describe("auth routes", () => {
     expect(after.statusCode).toBe(401);
   });
 
+  it("accepts a bodyless POST that still declares JSON", async () => {
+    // Sign-out is a POST with no body. If the client sends content-type:
+    // application/json anyway, the API must not treat the empty document as
+    // a parse error — that used to make sign-out fail with a 500, leaving
+    // the session alive.
+    const logout = await app.inject({
+      method: "POST",
+      url: "/v1/auth/logout",
+      headers: { "content-type": "application/json" },
+      payload: "",
+    });
+    expect(logout.statusCode).toBe(200);
+    expect(logout.json().ok).toBe(true);
+  });
+
   it("verifies email with a single-use token", async () => {
     await app.inject({
       method: "POST",

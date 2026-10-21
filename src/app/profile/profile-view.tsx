@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, api, type Profile, type PublicUser } from "@/lib/api";
+import { useSession } from "@/lib/session";
+import { clearSessionHint } from "@/lib/session-hint";
 import Mark from "@/components/Mark";
 
 export default function ProfileView() {
   const router = useRouter();
+  const session = useSession();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<PublicUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -68,7 +71,16 @@ export default function ProfileView() {
 
   async function onLogout() {
     await api.logout().catch(() => undefined);
-    router.push("/");
+    // Drop the routing hint before navigating, otherwise the landing page
+    // would bounce the freshly signed-out visitor straight back here.
+    clearSessionHint();
+    session.refresh();
+    // A full navigation, not a client-side push: the client router still
+    // holds the pre-sign-out state, and the landing page's "members go to
+    // their workspace" redirect would bounce the signed-out visitor back
+    // here. A sign-out has to start from a clean app.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/";
   }
 
   if (loading || !user) {

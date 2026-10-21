@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ApiError, api, googleSignInUrl } from "@/lib/api";
-import { SIGNED_IN_HOME, useSession } from "@/lib/use-session";
+import { useSession } from "@/lib/session";
+import { SIGNED_IN_HOME } from "@/lib/session-hint";
 import Mark from "@/components/Mark";
 
 /** Copy for each failure the API's Google callback can bounce back with. */
@@ -75,6 +76,7 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const isSignUp = mode === "sign-up";
   const router = useRouter();
   const params = useSearchParams();
+  const session = useSession();
   const [role, setRole] = useState<"talent" | "client">(
     params.get("role") === "client" ? "client" : "talent",
   );
@@ -94,9 +96,13 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       if (isSignUp) {
         const name = String(form.get("name") ?? "");
         await api.signup({ email, name, password, role });
+        // The session now exists: tell the app, so the nav and the routing
+        // hint know the visitor is a member from here on.
+        session.refresh();
         router.push("/profile/setup");
       } else {
         await api.login({ email, password });
+        session.refresh();
         router.push("/profile");
       }
     } catch (e) {
@@ -200,13 +206,17 @@ export default function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter();
   const session = useSession();
 
-  // Someone who already has a session has no business on the auth pages:
-  // send them to their workspace instead of showing a form they cannot use.
-  useEffect(() => {
-    if (session.status === "signed-in") router.replace(SIGNED_IN_HOME);
-  }, [session.status, router]);
+  // Someone who already had a session when they landed here has no business
+  // on the auth pages: send them to their workspace instead of a form they
+  // cannot use. A visitor who signs in with the form below is not bounced —
+  // `settled` stays "visitor" for them.
+  const gate = session.settled;
 
-  if (session.status === "loading") {
+  useEffect(() => {
+    if (gate === "member") router.replace(SIGNED_IN_HOME);
+  }, [gate, router]);
+
+  if (!gate) {
     return (
       <main className="sckoll-auth-page">
         <p style={{ textAlign: "center", color: "#aeb4bc" }}>Checking your session…</p>
@@ -214,7 +224,7 @@ export default function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
     );
   }
 
-  if (session.status === "signed-in") {
+  if (gate === "member") {
     return (
       <main className="sckoll-auth-page">
         <p style={{ textAlign: "center", color: "#aeb4bc" }}>Taking you to your workspace…</p>
