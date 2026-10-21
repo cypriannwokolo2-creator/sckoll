@@ -45,3 +45,31 @@ test("sign-up offers both account types and requires consent", async ({ page }) 
   expect(await email.evaluate((el: HTMLInputElement) => el.checkValidity())).toBe(false);
   await expect(page).toHaveURL(/\/sign-up/);
 });
+
+test("google sign-in is offered as a redirect link when the API enables it", async ({ request }) => {
+  // The API decides whether Google is available; the frontend only links to it.
+  const config = await request.get(`${process.env.E2E_API_URL ?? "http://127.0.0.1:8110"}/v1/auth/config`);
+  expect(config.ok()).toBe(true);
+  const body = await config.json();
+  expect(typeof body.google_enabled).toBe("boolean");
+
+  if (body.google_enabled) {
+    // A real client redirects to Google with a signed state + PKCE challenge.
+    const start = await request.get(`${process.env.E2E_API_URL ?? "http://127.0.0.1:8110"}/v1/auth/google`, {
+      maxRedirects: 0,
+    });
+    expect(start.status()).toBe(302);
+    const location = start.headers()["location"] ?? "";
+    expect(location).toContain("accounts.google.com");
+    expect(location).toContain("code_challenge");
+    expect(location).toContain("state=");
+    // The client secret must never be exposed to the browser.
+    expect(location).not.toContain("client_secret");
+  } else {
+    // Disabled: the start endpoint fails closed instead of redirecting.
+    const start = await request.get(`${process.env.E2E_API_URL ?? "http://127.0.0.1:8110"}/v1/auth/google`, {
+      maxRedirects: 0,
+    });
+    expect(start.status()).toBe(503);
+  }
+});

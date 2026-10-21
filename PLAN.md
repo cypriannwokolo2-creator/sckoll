@@ -87,7 +87,7 @@ same commit, per the rules at the top.
 
 ## Phase 2 — Backend API, auth, security ✅ *(commit `1b7c10f` + `af50db7` + `94172f0`)*
 - [x] Fastify + Drizzle backend: users, sessions, profiles, verification/password-reset tokens
-- [x] Password auth + Google sign-in (ID-token flow) + Brevo transactional mail
+- [x] Password auth + Google sign-in (authorization-code flow with PKCE) + Brevo transactional mail
 - [x] Auth audit hardening: CVE patches, rate limits, security headers (helmet)
 - [x] Frontend excluded from backend typecheck/lint/Vercel upload (`.vercelignore`)
 - [x] Docker Compose stack: `api` + `db` (pgvector) + `redis`, Traefik labels, healthchecks

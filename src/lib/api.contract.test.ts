@@ -13,7 +13,6 @@ const CASES: Case[] = [
   { key: "config", args: [], path: "/v1/auth/config", verb: "GET" },
   { key: "signup", args: [{ email: "a@b.com", name: "A", password: "longenough1", role: "talent" }], path: "/v1/auth/signup", verb: "POST" },
   { key: "login", args: [{ email: "a@b.com", password: "longenough1" }], path: "/v1/auth/login", verb: "POST" },
-  { key: "google", args: [{ idToken: "tok", role: "client" }], path: "/v1/auth/google", verb: "POST" },
   { key: "logout", args: [], path: "/v1/auth/logout", verb: "POST" },
   { key: "me", args: [], path: "/v1/me", verb: "GET" },
   { key: "verify", args: [{ token: "tok", email: "a@b.com" }], path: "/v1/auth/verify", verb: "POST" },

@@ -2239,10 +2239,34 @@ input {
   line-height: 1.5;
 }
 
-.sckoll-google-holder {
+.sckoll-google-link {
   display: flex;
+  width: 100%;
+  min-height: 3rem;
+  align-items: center;
   justify-content: center;
-  min-height: 2.9rem;
+  gap: 0.6rem;
+  border: 1px solid #3a3f47;
+  border-radius: 0.75rem;
+  background: #14171b;
+  color: #f2f4f7;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.sckoll-google-link:hover {
+  transform: translateY(-1px);
+  border-color: #565c66;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.sckoll-google-link-mark {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
 }
 
 .sckoll-auth-success {

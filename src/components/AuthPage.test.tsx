@@ -1,19 +1,19 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GOOGLE_CLIENT_ID } from "@/lib/api";
+import { API_URL } from "@/lib/api";
 import AuthPage from "./AuthPage";
 
-const { pushMock, scriptLoaders } = vi.hoisted(() => ({
+const { pushMock, searchParams } = vi.hoisted(() => ({
   pushMock: vi.fn(),
-  // onLoad handlers handed to <Script> by AuthPage, so a test can fire them
-  // after mount and simulate the Google Identity Services script arriving late.
-  scriptLoaders: [] as Array<() => void>,
+  // Query string the mocked useSearchParams reports (the API bounces a failed
+  // Google flow back to the auth page with ?error=<code>).
+  searchParams: { value: "" },
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(searchParams.value),
 }));
 
 vi.mock("next/link", () => ({
@@ -24,17 +24,22 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("next/script", () => ({
-  default: ({ onLoad }: { onLoad?: () => void }) => {
-    if (onLoad) scriptLoaders.push(onLoad);
-    return null;
-  },
-}));
-
-function stubFetch(body: unknown, status = 200) {
-  const fn = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () =>
-    ({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as Response,
-  );
+/**
+ * Stub fetch, answering /v1/auth/config separately from the auth calls: the
+ * page now asks the API whether Google is enabled, so call order is not
+ * something a test should depend on.
+ */
+function stubFetch(body: unknown, status = 200, config: { google_enabled?: boolean } = {}) {
+  const fn = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async (input) => {
+    if (String(input).includes("/v1/auth/config")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ google_enabled: false, email_password_enabled: true, ...config }),
+      } as unknown as Response;
+    }
+    return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
+  });
   vi.stubGlobal("fetch", fn);
   return fn;
 }
@@ -42,7 +47,7 @@ function stubFetch(body: unknown, status = 200) {
 afterEach(() => {
   vi.unstubAllGlobals();
   pushMock.mockReset();
-  scriptLoaders.length = 0;
+  searchParams.value = "";
 });
 
 describe("AuthPage (sign-in)", () => {
@@ -80,7 +85,8 @@ describe("AuthPage (sign-in)", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/profile"));
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"));
+    const login = fetchMock.mock.calls.find((call) => String(call[0]).includes("/v1/auth/login"));
+    const body = JSON.parse(String(login?.[1]?.body ?? "{}"));
     expect(body).toEqual({ email: "a@b.com", password: "correct-horse" });
   });
 });
@@ -110,30 +116,51 @@ describe("AuthPage (sign-up)", () => {
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/profile/setup"));
-    const [url, init] = fetchMock.mock.calls[0]!;
-    expect(String(url)).toContain("/v1/auth/signup");
-    expect(JSON.parse(String(init?.body))).toMatchObject({ role: "client", email: "new@client.com", name: "New Client" });
+    const signup = fetchMock.mock.calls.find((call) => String(call[0]).includes("/v1/auth/signup"));
+    expect(String(signup?.[0])).toContain("/v1/auth/signup");
+    expect(JSON.parse(String(signup?.[1]?.body))).toMatchObject({ role: "client", email: "new@client.com", name: "New Client" });
   });
 });
 
 describe("AuthPage (Google button)", () => {
-  it("renders the button even though the GIS script loads after mount", async () => {
-    const renderButton = vi.fn();
-    const initialize = vi.fn();
+  it("links to the API's redirect start endpoint when Google is enabled", async () => {
+    stubFetch({}, 200, { google_enabled: true });
 
-    // Mount first: window.google is not there yet because the script is lazy.
     render(<AuthPage mode="sign-in" />);
-    expect(renderButton).not.toHaveBeenCalled();
 
-    // The script lands late and fires onLoad — the button must appear now.
-    vi.stubGlobal("google", { accounts: { id: { initialize, renderButton } } });
-    await act(async () => {
-      for (const onLoad of [...scriptLoaders]) onLoad();
+    const link = await screen.findByRole("link", { name: /continue with google/i });
+    expect(link).toHaveAttribute("href", `${API_URL}/v1/auth/google?mode=sign-in&role=talent`);
+  });
+
+  it("carries the chosen role into the redirect", async () => {
+    stubFetch({}, 200, { google_enabled: true });
+    const user = userEvent.setup();
+
+    render(<AuthPage mode="sign-up" />);
+    await screen.findByRole("link", { name: /continue with google/i });
+
+    await user.click(screen.getByRole("tab", { name: "I want to hire" }));
+
+    const link = await screen.findByRole("link", { name: /continue with google/i });
+    expect(link).toHaveAttribute("href", `${API_URL}/v1/auth/google?mode=sign-up&role=client`);
+  });
+
+  it("hides the button when the API reports Google disabled", async () => {
+    stubFetch({}, 200, { google_enabled: false });
+
+    render(<AuthPage mode="sign-in" />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("link", { name: /continue with google/i })).not.toBeInTheDocument();
     });
+  });
 
-    expect(initialize).toHaveBeenCalledTimes(1);
-    expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: GOOGLE_CLIENT_ID }));
-    expect(renderButton).toHaveBeenCalledTimes(1);
-    expect(renderButton.mock.calls[0]?.[0]).toBeInstanceOf(HTMLElement);
+  it("surfaces the reason the API bounced a failed Google flow back", async () => {
+    stubFetch({}, 200, { google_enabled: true });
+    searchParams.value = "error=google_cancelled";
+
+    render(<AuthPage mode="sign-in" />);
+
+    expect(await screen.findByText(/cancelled/i)).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import { buildServer } from "../index.js";
 import { loadEnv, type Env } from "../env.js";
 import { pushSchema, testDatabaseUrl } from "../test-setup.js";
 import { hashToken, newOpaqueToken } from "../lib/password.js";
-import type { VerifyIdToken } from "../lib/google.js";
+import type { GoogleClient } from "../lib/google-client.js";
 
 process.env.SCKOLL_TEST_DB ??= "sckoll_test_auth";
 const TEST_DATABASE_URL = testDatabaseUrl();
@@ -30,8 +30,13 @@ async function truncate() {
   await db.delete(users);
 }
 
-function stubVerifier(profile: { sub: string; email: string; emailVerified: boolean; name?: string }): VerifyIdToken {
-  return async () => profile;
+/** A Google client that never talks to Google: returns a canned profile. */
+function stubGoogleClient(profile: { sub: string; email: string; emailVerified: boolean; name?: string }): GoogleClient {
+  return {
+    authorizeUrl: ({ state, codeChallenge }) =>
+      `https://accounts.google.com/o/oauth2/v2/auth?state=${encodeURIComponent(state)}&code_challenge=${encodeURIComponent(codeChallenge)}`,
+    exchangeCode: async () => profile,
+  };
 }
 
 describe("auth routes", () => {
@@ -53,7 +58,7 @@ describe("auth routes", () => {
   it("reports google disabled when no client id", async () => {
     const config = await app.inject({ method: "GET", url: "/v1/auth/config" });
     expect(config.json().google_enabled).toBe(false);
-    const res = await app.inject({ method: "POST", url: "/v1/auth/google", payload: { idToken: "x" } });
+    const res = await app.inject({ method: "GET", url: "/v1/auth/google" });
     expect(res.statusCode).toBe(503);
   });
 
@@ -175,15 +180,35 @@ describe("auth routes", () => {
     const { registerAuthRoutes } = await import("./auth.js");
     const Fastify = (await import("fastify")).default;
     const env: Env = { ...loadEnv(), ...TEST_ENV, GOOGLE_CLIENT_ID: "test.apps.googleusercontent.com" };
-    const gapp = Fastify();
-    await gapp.register((await import("@fastify/cookie")).default);
-    await registerAuthRoutes(gapp, env, {
-      googleVerifier: stubVerifier({ sub: "g-1", email: "gigi@sckoll.com", emailVerified: true, name: "Gigi" }),
-    });
 
-    const fresh = await gapp.inject({ method: "POST", url: "/v1/auth/google", payload: { idToken: "tok" } });
-    expect(fresh.statusCode).toBe(200);
-    expect(fresh.json().user.emailVerified).toBe(true);
+    const buildGoogleApp = async (profile: { sub: string; email: string; emailVerified: boolean; name?: string }) => {
+      const gapp = Fastify();
+      await gapp.register((await import("@fastify/cookie")).default);
+      await registerAuthRoutes(gapp, env, { googleClient: stubGoogleClient(profile) });
+      return gapp;
+    };
+
+    /** Walk the whole redirect flow: start -> Google -> callback. */
+    const runFlow = async (gapp: FastifyInstance) => {
+      const start = await gapp.inject({ method: "GET", url: "/v1/auth/google" });
+      const cookie = String(start.headers["set-cookie"]).split(";")[0];
+      const state = new URL(start.headers.location as string).searchParams.get("state") ?? "";
+      return gapp.inject({
+        method: "GET",
+        url: `/v1/auth/google/callback?code=test-code&state=${encodeURIComponent(state)}`,
+        headers: { cookie },
+      });
+    };
+
+    const gapp = await buildGoogleApp({ sub: "g-1", email: "gigi@sckoll.com", emailVerified: true, name: "Gigi" });
+    const fresh = await runFlow(gapp);
+    expect(fresh.statusCode).toBe(302);
+    expect(fresh.headers.location).toContain("/profile/setup");
+    expect(fresh.headers["set-cookie"]).toBeDefined();
+    const db = getDb(TEST_DATABASE_URL);
+    const gigi = (await db.select().from(users).where(eq(users.email, "gigi@sckoll.com")).limit(1))[0];
+    expect(gigi.googleSub).toBe("g-1");
+    expect(gigi.emailVerified).toBe(true);
 
     // Password account first, then google with UNVERIFIED email: must refuse.
     await app.inject({
@@ -191,28 +216,75 @@ describe("auth routes", () => {
       url: "/v1/auth/signup",
       payload: { email: "sam@sckoll.com", name: "Sam", password: "correct-horse-123", role: "talent" },
     });
-    const gapp2 = Fastify();
-    await gapp2.register((await import("@fastify/cookie")).default);
-    await registerAuthRoutes(gapp2, env, {
-      googleVerifier: stubVerifier({ sub: "g-2", email: "sam@sckoll.com", emailVerified: false }),
-    });
-    const refused = await gapp2.inject({ method: "POST", url: "/v1/auth/google", payload: { idToken: "tok" } });
-    expect(refused.statusCode).toBe(401);
+    const gapp2 = await buildGoogleApp({ sub: "g-2", email: "sam@sckoll.com", emailVerified: false });
+    const refused = await runFlow(gapp2);
+    expect(refused.statusCode).toBe(302);
+    expect(refused.headers.location).toContain("error=google_unverified");
 
     // Same email, VERIFIED: links and signs in.
-    const gapp3 = Fastify();
-    await gapp3.register((await import("@fastify/cookie")).default);
-    await registerAuthRoutes(gapp3, env, {
-      googleVerifier: stubVerifier({ sub: "g-3", email: "sam@sckoll.com", emailVerified: true, name: "Sam" }),
-    });
-    const linked = await gapp3.inject({ method: "POST", url: "/v1/auth/google", payload: { idToken: "tok" } });
-    expect(linked.statusCode).toBe(200);
-    const db = getDb(TEST_DATABASE_URL);
+    const gapp3 = await buildGoogleApp({ sub: "g-3", email: "sam@sckoll.com", emailVerified: true, name: "Sam" });
+    const linked = await runFlow(gapp3);
+    expect(linked.statusCode).toBe(302);
+    expect(linked.headers.location).toContain("/profile/setup");
     const sam = (await db.select().from(users).where(eq(users.email, "sam@sckoll.com")).limit(1))[0];
     expect(sam.googleSub).toBe("g-3");
     await gapp.close();
     await gapp2.close();
     await gapp3.close();
+  });
+
+  it("refuses a callback whose state does not match the flow cookie", async () => {
+    const { registerAuthRoutes } = await import("./auth.js");
+    const Fastify = (await import("fastify")).default;
+    const env: Env = { ...loadEnv(), ...TEST_ENV, GOOGLE_CLIENT_ID: "test.apps.googleusercontent.com" };
+    const gapp = Fastify();
+    await gapp.register((await import("@fastify/cookie")).default);
+    await registerAuthRoutes(gapp, env, {
+      googleClient: stubGoogleClient({ sub: "g-9", email: "mallory@sckoll.com", emailVerified: true }),
+    });
+
+    const start = await gapp.inject({ method: "GET", url: "/v1/auth/google" });
+    const cookie = String(start.headers["set-cookie"]).split(";")[0];
+    const state = new URL(start.headers.location as string).searchParams.get("state") ?? "";
+
+    // A callback with the right cookie but a tampered state must not sign in.
+    const forged = await gapp.inject({
+      method: "GET",
+      url: `/v1/auth/google/callback?code=test-code&state=${encodeURIComponent(`${state}x`)}`,
+      headers: { cookie },
+    });
+    expect(forged.statusCode).toBe(302);
+    expect(forged.headers.location).toContain("error=google_state");
+
+    // A callback with no cookie at all is rejected too.
+    const noCookie = await gapp.inject({
+      method: "GET",
+      url: `/v1/auth/google/callback?code=test-code&state=${encodeURIComponent(state)}`,
+    });
+    expect(noCookie.statusCode).toBe(302);
+    expect(noCookie.headers.location).toContain("error=google_state");
+    await gapp.close();
+  });
+
+  it("reports a cancelled consent screen back to the auth page", async () => {
+    const { registerAuthRoutes } = await import("./auth.js");
+    const Fastify = (await import("fastify")).default;
+    const env: Env = { ...loadEnv(), ...TEST_ENV, GOOGLE_CLIENT_ID: "test.apps.googleusercontent.com" };
+    const gapp = Fastify();
+    await gapp.register((await import("@fastify/cookie")).default);
+    await registerAuthRoutes(gapp, env, {
+      googleClient: stubGoogleClient({ sub: "g-8", email: "cancel@sckoll.com", emailVerified: true }),
+    });
+
+    const start = await gapp.inject({ method: "GET", url: "/v1/auth/google" });
+    const state = new URL(start.headers.location as string).searchParams.get("state") ?? "";
+    const cancelled = await gapp.inject({
+      method: "GET",
+      url: `/v1/auth/google/callback?error=access_denied&state=${encodeURIComponent(state)}`,
+    });
+    expect(cancelled.statusCode).toBe(302);
+    expect(cancelled.headers.location).toContain("error=google_cancelled");
+    await gapp.close();
   });
 
   it("resends verification links without enumeration", async () => {
