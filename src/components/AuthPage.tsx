@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ApiError, api, googleSignInUrl } from "@/lib/api";
+import { SIGNED_IN_HOME, useSession } from "@/lib/use-session";
 import Mark from "@/components/Mark";
 
 /** Copy for each failure the API's Google callback can bounce back with. */
@@ -196,6 +197,31 @@ function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
 export default function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const isSignUp = mode === "sign-up";
+  const router = useRouter();
+  const session = useSession();
+
+  // Someone who already has a session has no business on the auth pages:
+  // send them to their workspace instead of showing a form they cannot use.
+  useEffect(() => {
+    if (session.status === "signed-in") router.replace(SIGNED_IN_HOME);
+  }, [session.status, router]);
+
+  if (session.status === "loading") {
+    return (
+      <main className="sckoll-auth-page">
+        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Checking your session…</p>
+      </main>
+    );
+  }
+
+  if (session.status === "signed-in") {
+    return (
+      <main className="sckoll-auth-page">
+        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Taking you to your workspace…</p>
+      </main>
+    );
+  }
+
   return (
     <main className="sckoll-auth-page">
       <div className="sckoll-auth-brand">

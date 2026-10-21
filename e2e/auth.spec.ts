@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-/** Sign-in / sign-up behaviour against the real API (read-only: no accounts created). */
+/**
+ * Sign-in / sign-up behaviour against the real API.
+ *
+ * The first tests are read-only (no accounts created). The session-gate test
+ * at the end signs up one throwaway account to get a real session cookie.
+ */
 
 test("sign-in keeps required + minlength validation on the inputs", async ({ page }) => {
   await page.goto("/sign-in");
@@ -72,4 +77,31 @@ test("google sign-in is offered as a redirect link when the API enables it", asy
     });
     expect(start.status()).toBe(503);
   }
+});
+
+test("an authenticated visitor never sees the auth pages or the sign-in prompts", async ({ page }) => {
+  const api = process.env.E2E_API_URL ?? "http://127.0.0.1:8110";
+  const email = `session-gate-${Date.now()}@ci.local`;
+
+  // page.request shares the browser context's cookie jar, so this session is
+  // the one the page will see.
+  const signup = await page.request.post(`${api}/v1/auth/signup`, {
+    data: { email, name: "Session Gate", password: "correct-horse-123", role: "talent" },
+  });
+  expect(signup.ok()).toBe(true);
+
+  // The sign-in page sends a signed-in visitor to their workspace.
+  await page.goto("/sign-in");
+  await expect(page).toHaveURL(/\/profile/);
+  await expect(page.getByPlaceholder("you@example.com")).toHaveCount(0);
+
+  // Same for sign-up.
+  await page.goto("/sign-up");
+  await expect(page).toHaveURL(/\/profile/);
+
+  // And the landing page offers the workspace instead of "Log in".
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Your workspace" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /^Sign up free$/ })).toHaveCount(0);
 });

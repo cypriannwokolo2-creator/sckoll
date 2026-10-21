@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
+import AuthNavActions from "@/components/AuthNavActions";
 import { ApiError, api, type MatchScore, type Opportunity } from "@/lib/api";
 import OpportunityCard from "@/components/OpportunityCard";
 
@@ -168,10 +169,7 @@ export default function FindWorkPage() {
           </div>
           <div className="sckoll-subnav-actions">
             <NotifBell />
-            <Link href="/sign-in">Log in</Link>
-            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">
-              Sign up
-            </Link>
+            <AuthNavActions signUpLabel="Sign up" />
           </div>
         </nav>
       </header>
