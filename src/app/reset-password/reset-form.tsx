@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import Mark from "@/components/Mark";
+import AuthCta from "@/components/AuthCta";
 
 function ResetForm() {
   const params = useSearchParams();
@@ -79,7 +80,8 @@ function ResetForm() {
         </form>
       )}
       <p className="sckoll-auth-switch">
-        Remembered it? <Link href="/sign-in">Sign in</Link>
+        Remembered it?{" "}
+        <AuthCta href="/sign-in" label="Sign in" signedInHref="/profile" signedInLabel="Back to your workspace" />
       </p>
     </div>
   );

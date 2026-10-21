@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import Mark from "@/components/Mark";
 import NotifBell from "@/components/NotifBell";
+import AuthNavActions from "@/components/AuthNavActions";
 import ApplyModal from "@/components/ApplyModal";
 import { ApiError, api, budgetLabel, trackMatchEvent, type Application, type Opportunity, type Profile } from "@/lib/api";
 
@@ -165,10 +166,7 @@ export default function OpportunityDetail({ params }: { params: Promise<{ id: st
           </Link>
           <div className="sckoll-subnav-actions">
             <NotifBell />
-            <Link href="/sign-in">Log in</Link>
-            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">
-              Sign up
-            </Link>
+            <AuthNavActions signUpLabel="Sign up" />
           </div>
         </nav>
       </header>

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import FlipWord from "@/components/FlipWord";
+import AuthCta from "@/components/AuthCta";
+import AuthNavActions from "@/components/AuthNavActions";
 
 const NAV_MENUS = [
   {
@@ -152,7 +154,7 @@ export default function Home() {
                     <div className="sckoll-dropdown-callout">
                       <span className="sckoll-mini-dot" />
                       <p>One workspace for work that moves.</p>
-                      <Link href="/sign-up">Get started <ArrowUpRight /></Link>
+                      <AuthCta href="/sign-up" label="Get started" signedInHref="/profile" signedInLabel="Open workspace"><ArrowUpRight /></AuthCta>
                     </div>
                   </div>
                 )}
@@ -163,8 +165,7 @@ export default function Home() {
           </div>
 
           <div className="sckoll-nav-actions">
-            <Link href="/sign-in" className="sckoll-login">Log in</Link>
-            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">Sign up free</Link>
+            <AuthNavActions signUpLabel="Sign up free" linkClassName="sckoll-login" />
             <Link href="/find-talent" className="sckoll-button sckoll-button-outline sckoll-button-small sckoll-hire-button">Hire talent</Link>
           </div>
 
@@ -177,7 +178,7 @@ export default function Home() {
             {NAV_MENUS.map((menu) => <details key={menu.label} className="sckoll-mobile-group"><summary>{menu.label}<span>+</span></summary><div>{menu.columns.flatMap((column) => column.items).map((item) => <Link key={item.href} href={item.href} onClick={() => setMobileMenu(false)}>{item.label}</Link>)}</div></details>)}
             <Link href="/categories" onClick={() => setMobileMenu(false)}>Categories</Link>
             <Link href="/pricing" onClick={() => setMobileMenu(false)}>Pricing</Link>
-            <div className="sckoll-mobile-actions"><Link href="/sign-up" className="sckoll-button sckoll-button-acid">Sign up free</Link><Link href="/find-talent" className="sckoll-button sckoll-button-outline">Hire talent</Link></div>
+            <div className="sckoll-mobile-actions"><AuthCta href="/sign-up" label="Sign up free" signedInHref="/profile" signedInLabel="Your workspace" className="sckoll-button sckoll-button-acid" /><Link href="/find-talent" className="sckoll-button sckoll-button-outline">Hire talent</Link></div>
           </div>
         )}
       </header>
@@ -228,10 +229,10 @@ export default function Home() {
 
         <section className="sckoll-quote-section"><div className="sckoll-container sckoll-quote-inner"><span className="sckoll-quote-mark">“</span><blockquote>Good work should find the people ready to do it.</blockquote><p>That&apos;s the premise behind Sckoll.</p></div></section>
 
-        <section className="sckoll-pricing" id="pricing"><div className="sckoll-container sckoll-pricing-inner"><p className="sckoll-kicker">Simple by design</p><h2>Start with the work.<br /><span>Stay for the momentum.</span></h2><p>Win your next contract, bypass the resume black hole, or source reliable talent without adding another recruiter.</p><div><Link href="/sign-up" className="sckoll-button sckoll-button-dark">Sign up free <ArrowUpRight /></Link><Link href="/contact" className="sckoll-button sckoll-button-light">Talk to the team <ArrowUpRight /></Link></div></div></section>
+        <section className="sckoll-pricing" id="pricing"><div className="sckoll-container sckoll-pricing-inner"><p className="sckoll-kicker">Simple by design</p><h2>Start with the work.<br /><span>Stay for the momentum.</span></h2><p>Win your next contract, bypass the resume black hole, or source reliable talent without adding another recruiter.</p><div><AuthCta href="/sign-up" label="Sign up free" signedInHref="/profile" signedInLabel="Open your workspace" className="sckoll-button sckoll-button-dark"><ArrowUpRight /></AuthCta><Link href="/contact" className="sckoll-button sckoll-button-light">Talk to the team <ArrowUpRight /></Link></div></div></section>
       </main>
 
-      <footer className="sckoll-footer"><div className="sckoll-container"><div className="sckoll-footer-grid"><div className="sckoll-footer-brand"><div className="sckoll-brand"><Mark small /><span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span></div><p>Autonomous opportunity intelligence for every occupation.</p><Link href="/status" className="sckoll-footer-status"><span />Radar online · 24/7</Link></div><div><p className="sckoll-footer-heading">Product</p><Link href="/how-it-works">How it works</Link><Link href="/find-work">Opportunity feed</Link><Link href="/trust">Trust layer</Link><Link href="/pricing">Pricing</Link></div><div><p className="sckoll-footer-heading">For</p><Link href="/find-work">Freelancers</Link><Link href="/find-work">Job seekers</Link><Link href="/find-talent">Founders &amp; agencies</Link><Link href="/find-talent">Small teams</Link></div><div><p className="sckoll-footer-heading">Explore</p><Link href="/categories/development-it">Categories</Link><Link href="/find-work">Search work</Link><Link href="/find-talent">Search talent</Link><Link href="/sign-up">Get started</Link></div></div><div className="sckoll-footer-lockup"><Mark small /><span>sckoll</span></div><div className="sckoll-footer-bottom"><span>Copyright © 2026 Sckoll. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></div></div></div></footer>
+      <footer className="sckoll-footer"><div className="sckoll-container"><div className="sckoll-footer-grid"><div className="sckoll-footer-brand"><div className="sckoll-brand"><Mark small /><span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span></div><p>Autonomous opportunity intelligence for every occupation.</p><Link href="/status" className="sckoll-footer-status"><span />Radar online · 24/7</Link></div><div><p className="sckoll-footer-heading">Product</p><Link href="/how-it-works">How it works</Link><Link href="/find-work">Opportunity feed</Link><Link href="/trust">Trust layer</Link><Link href="/pricing">Pricing</Link></div><div><p className="sckoll-footer-heading">For</p><Link href="/find-work">Freelancers</Link><Link href="/find-work">Job seekers</Link><Link href="/find-talent">Founders &amp; agencies</Link><Link href="/find-talent">Small teams</Link></div><div><p className="sckoll-footer-heading">Explore</p><Link href="/categories/development-it">Categories</Link><Link href="/find-work">Search work</Link><Link href="/find-talent">Search talent</Link><AuthCta href="/sign-up" label="Get started" signedInHref="/profile" signedInLabel="Your workspace" /></div></div><div className="sckoll-footer-lockup"><Mark small /><span>sckoll</span></div><div className="sckoll-footer-bottom"><span>Copyright © 2026 Sckoll. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></div></div></div></footer>
     </div>
   );
 }

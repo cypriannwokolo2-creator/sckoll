@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Mark from "@/components/Mark";
+import AuthCta from "@/components/AuthCta";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8110").replace(/\/$/, "");
 
@@ -44,9 +45,7 @@ export default function SuccessStoriesView() {
           </Link>
           <div className="sckoll-subnav-actions">
             <Link href="/find-work">Find work</Link>
-            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">
-              Get started
-            </Link>
+            <AuthCta href="/sign-up" label="Get started" className="sckoll-button sckoll-button-acid sckoll-button-small" />
           </div>
         </nav>
       </header>
@@ -76,9 +75,15 @@ export default function SuccessStoriesView() {
               <div className="sckoll-empty">
                 <h3>The first stories are being written.</h3>
                 <p>Every completed contract with a five-star review lands here automatically. Yours could be next.</p>
-                <Link href="/sign-up" className="sckoll-button sckoll-button-dark">
-                  Become an early story <span>↗</span>
-                </Link>
+                <AuthCta
+                  href="/sign-up"
+                  label="Become an early story"
+                  signedInHref="/post-project"
+                  signedInLabel="Start your first project"
+                  className="sckoll-button sckoll-button-dark"
+                >
+                  <span>↗</span>
+                </AuthCta>
               </div>
             ) : (
               <div className="sckoll-sub-card-grid">

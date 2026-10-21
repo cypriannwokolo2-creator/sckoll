@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AuthCta from "@/components/AuthCta";
+import AuthNavActions from "@/components/AuthNavActions";
 
 export type ProductCard = {
   label: string;
@@ -70,8 +72,7 @@ export default function ProductPage({
             <Link href="/pricing">Pricing</Link>
           </div>
           <div className="sckoll-subnav-actions">
-            <Link href="/sign-in">Log in</Link>
-            <Link href="/sign-up" className="sckoll-button sckoll-button-acid sckoll-button-small">Sign up</Link>
+            <AuthNavActions signUpLabel="Sign up" />
           </div>
         </nav>
       </header>
@@ -84,7 +85,9 @@ export default function ProductPage({
             <h1>{title}</h1>
             <p className="sckoll-sub-description">{description}</p>
             <div className="sckoll-sub-actions">
-              <Link href={primaryHref} className="sckoll-button sckoll-button-acid">{primaryLabel} <Arrow /></Link>
+              <AuthCta href={primaryHref} label={primaryLabel} className="sckoll-button sckoll-button-acid">
+                <Arrow />
+              </AuthCta>
               {secondaryLabel && secondaryHref && <Link href={secondaryHref} className="sckoll-button sckoll-button-outline">{secondaryLabel} <Arrow /></Link>}
             </div>
           </div>
@@ -106,7 +109,7 @@ export default function ProductPage({
           <section className="sckoll-subsection"><div className="sckoll-container"><div className="sckoll-subsection-heading"><p className="sckoll-kicker">The flow</p><h2>Clear steps. Fewer open tabs.</h2></div><div className="sckoll-sub-step-grid">{steps.map((step) => <article key={step.number}><strong>{step.number}</strong><div /><h3>{step.title}</h3><p>{step.description}</p></article>)}</div></div></section>
         )}
 
-        <section className="sckoll-sub-cta"><div className="sckoll-container"><p className="sckoll-kicker">Ready when you are</p><h2>Put the next opportunity in motion.</h2><Link href={primaryHref} className="sckoll-button sckoll-button-dark">{primaryLabel} <Arrow /></Link></div></section>
+        <section className="sckoll-sub-cta"><div className="sckoll-container"><p className="sckoll-kicker">Ready when you are</p><h2>Put the next opportunity in motion.</h2><AuthCta href={primaryHref} label={primaryLabel} className="sckoll-button sckoll-button-dark"><Arrow /></AuthCta></div></section>
       </main>
 
       <footer className="sckoll-subfooter"><div className="sckoll-container"><div className="sckoll-subfooter-top"><div><div className="sckoll-brand"><Mark /><span className="font-wordmark text-xs uppercase tracking-[.28em] text-white">SCKOLL</span></div><p>Less scrolling. Fewer black holes. More work that fits.</p></div><div><strong>Explore</strong><Link href="/find-work">Find work</Link><Link href="/find-talent">Find talent</Link><Link href="/categories/development-it">Categories</Link></div><div><strong>Company</strong><Link href="/how-it-works">How it works</Link><Link href="/trust">Trust &amp; safety</Link><Link href="/contact">Contact</Link></div></div><div className="sckoll-subfooter-bottom"><span>© 2026 Sckoll</span><span><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></span></div></div></footer>
