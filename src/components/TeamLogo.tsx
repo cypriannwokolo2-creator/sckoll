@@ -12,36 +12,36 @@ interface TeamLogoProps {
   className?: string;
 }
 
-// Map team identifiers to local official SVG paths
+// Map team identifiers to local official high-definition crest paths
 const TEAM_LOGO_MAP: Record<string, string> = {
   // Football
-  arsenal: "/logos/teams/arsenal.svg",
-  "man-city": "/logos/teams/man-city.svg",
-  "manchester-city": "/logos/teams/man-city.svg",
-  liverpool: "/logos/teams/liverpool.svg",
-  chelsea: "/logos/teams/chelsea.svg",
-  "real-madrid": "/logos/teams/real-madrid.svg",
-  barcelona: "/logos/teams/barcelona.svg",
-  "fc-barcelona": "/logos/teams/barcelona.svg",
-  "bayern-munich": "/logos/teams/bayern-munich.svg",
-  dortmund: "/logos/teams/dortmund.svg",
-  "borussia-dortmund": "/logos/teams/dortmund.svg",
-  "inter-milan": "/logos/teams/inter-milan.svg",
-  juventus: "/logos/teams/juventus.svg",
-  tottenham: "/logos/teams/tottenham.svg",
-  "man-united": "/logos/teams/man-united.svg",
-  "manchester-united": "/logos/teams/man-united.svg",
-  "aston-villa": "/logos/teams/aston-villa.svg",
-  newcastle: "/logos/teams/newcastle.svg",
-  psg: "/logos/teams/psg.svg",
-  "ac-milan": "/logos/teams/ac-milan.svg",
+  arsenal: "/logos/teams/arsenal.png",
+  "man-city": "/logos/teams/man-city.png",
+  "manchester-city": "/logos/teams/man-city.png",
+  liverpool: "/logos/teams/liverpool.png",
+  chelsea: "/logos/teams/chelsea.png",
+  "real-madrid": "/logos/teams/real-madrid.png",
+  barcelona: "/logos/teams/barcelona.png",
+  "fc-barcelona": "/logos/teams/barcelona.png",
+  "bayern-munich": "/logos/teams/bayern-munich.png",
+  dortmund: "/logos/teams/dortmund.png",
+  "borussia-dortmund": "/logos/teams/dortmund.png",
+  "inter-milan": "/logos/teams/inter-milan.png",
+  juventus: "/logos/teams/juventus.png",
+  tottenham: "/logos/teams/tottenham.png",
+  "man-united": "/logos/teams/man-united.png",
+  "manchester-united": "/logos/teams/man-united.png",
+  "aston-villa": "/logos/teams/aston-villa.png",
+  newcastle: "/logos/teams/newcastle.png",
+  psg: "/logos/teams/psg.png",
+  "ac-milan": "/logos/teams/ac-milan.png",
   // Basketball
-  lakers: "/logos/teams/lakers.svg",
-  "la-lakers": "/logos/teams/lakers.svg",
-  warriors: "/logos/teams/warriors.svg",
-  "golden-state-warriors": "/logos/teams/warriors.svg",
-  celtics: "/logos/teams/celtics.svg",
-  bucks: "/logos/teams/bucks.svg",
+  lakers: "/logos/teams/lakers.png",
+  "la-lakers": "/logos/teams/lakers.png",
+  warriors: "/logos/teams/warriors.png",
+  "golden-state-warriors": "/logos/teams/warriors.png",
+  celtics: "/logos/teams/celtics.png",
+  bucks: "/logos/teams/bucks.png",
   // UFC
   ufc: "/logos/teams/ufc.svg",
 };
@@ -73,24 +73,27 @@ function resolveLogoPath(teamId?: string, name?: string): string | null {
 
   if (name) {
     const lower = name.toLowerCase();
-    if (lower.includes("arsenal")) return "/logos/teams/arsenal.svg";
-    if (lower.includes("city")) return "/logos/teams/man-city.svg";
-    if (lower.includes("liverpool")) return "/logos/teams/liverpool.svg";
-    if (lower.includes("chelsea")) return "/logos/teams/chelsea.svg";
-    if (lower.includes("madrid")) return "/logos/teams/real-madrid.svg";
-    if (lower.includes("barcelona")) return "/logos/teams/barcelona.svg";
-    if (lower.includes("bayern")) return "/logos/teams/bayern-munich.svg";
-    if (lower.includes("dortmund")) return "/logos/teams/dortmund.svg";
-    if (lower.includes("inter")) return "/logos/teams/inter-milan.svg";
-    if (lower.includes("juventus")) return "/logos/teams/juventus.svg";
-    if (lower.includes("tottenham")) return "/logos/teams/tottenham.svg";
-    if (lower.includes("united")) return "/logos/teams/man-united.svg";
-    if (lower.includes("villa")) return "/logos/teams/aston-villa.svg";
-    if (lower.includes("newcastle")) return "/logos/teams/newcastle.svg";
-    if (lower.includes("lakers")) return "/logos/teams/lakers.svg";
-    if (lower.includes("warriors")) return "/logos/teams/warriors.svg";
-    if (lower.includes("celtics")) return "/logos/teams/celtics.svg";
-    if (lower.includes("bucks")) return "/logos/teams/bucks.svg";
+    if (lower.includes("arsenal")) return "/logos/teams/arsenal.png";
+    if (lower.includes("city")) return "/logos/teams/man-city.png";
+    if (lower.includes("liverpool")) return "/logos/teams/liverpool.png";
+    if (lower.includes("chelsea")) return "/logos/teams/chelsea.png";
+    if (lower.includes("madrid")) return "/logos/teams/real-madrid.png";
+    if (lower.includes("barcelona")) return "/logos/teams/barcelona.png";
+    if (lower.includes("bayern")) return "/logos/teams/bayern-munich.png";
+    if (lower.includes("dortmund")) return "/logos/teams/dortmund.png";
+    if (lower.includes("inter")) return "/logos/teams/inter-milan.png";
+    if (lower.includes("juventus")) return "/logos/teams/juventus.png";
+    if (lower.includes("tottenham")) return "/logos/teams/tottenham.png";
+    if (lower.includes("united")) return "/logos/teams/man-united.png";
+    if (lower.includes("villa")) return "/logos/teams/aston-villa.png";
+    if (lower.includes("newcastle")) return "/logos/teams/newcastle.png";
+    if (lower.includes("psg")) return "/logos/teams/psg.png";
+    if (lower.includes("milan")) return "/logos/teams/ac-milan.png";
+    if (lower.includes("lakers")) return "/logos/teams/lakers.png";
+    if (lower.includes("warriors")) return "/logos/teams/warriors.png";
+    if (lower.includes("celtics")) return "/logos/teams/celtics.png";
+    if (lower.includes("bucks")) return "/logos/teams/bucks.png";
+    if (lower.includes("ufc")) return "/logos/teams/ufc.svg";
   }
 
   return null;

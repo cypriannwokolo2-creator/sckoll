@@ -11,12 +11,12 @@ interface LeagueLogoProps {
 }
 
 const LEAGUE_LOGO_MAP: Record<string, string> = {
-  "premier-league": "/logos/leagues/premier-league.svg",
-  "champions-league": "/logos/leagues/champions-league.svg",
-  "la-liga": "/logos/leagues/la-liga.svg",
-  "serie-a": "/logos/leagues/serie-a.svg",
-  bundesliga: "/logos/leagues/bundesliga.svg",
-  nba: "/logos/leagues/nba.svg",
+  "premier-league": "/logos/leagues/premier-league.png",
+  "champions-league": "/logos/leagues/champions-league.png",
+  "la-liga": "/logos/leagues/la-liga.png",
+  "serie-a": "/logos/leagues/serie-a.png",
+  bundesliga: "/logos/leagues/bundesliga.png",
+  nba: "/logos/leagues/nba.png",
   ufc: "/logos/teams/ufc.svg",
 };
 
