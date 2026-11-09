@@ -6,9 +6,9 @@
   --color-pitch: #10b981;
   --color-live: #ef4444;
   --color-stadium: #06b6d4;
-  --color-night: #080c16;
-  --color-surface: #0f172a;
-  --color-card: #151f38;
+  --color-night: #070a13;
+  --color-surface: #0e1526;
+  --color-card: #131d34;
 }
 
 :root {
@@ -18,7 +18,7 @@
   --live-glow: rgba(239, 68, 68, 0.5);
   --night-bg: #070a13;
   --surface-bg: #0e1526;
-  --card-bg: #141e34;
+  --card-bg: #131d34;
   --card-border: rgba(255, 255, 255, 0.08);
 }
 
@@ -34,6 +34,11 @@ html {
 body {
   margin: 0;
   background-color: var(--night-bg);
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 85% 60%, rgba(6, 182, 212, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 15% 80%, rgba(139, 92, 246, 0.06), transparent);
+  background-attachment: fixed;
   color: #f1f5f9;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -52,7 +57,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: #080d1a;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -70,8 +75,8 @@ body {
     transform: scale(1);
   }
   50% {
-    opacity: 0.4;
-    transform: scale(1.15);
+    opacity: 0.35;
+    transform: scale(1.18);
   }
 }
 
@@ -83,14 +88,15 @@ body {
 @keyframes float-up {
   0% {
     opacity: 1;
-    transform: translateY(0) scale(0.8);
+    transform: translateY(0) scale(0.85);
   }
   50% {
-    transform: translateY(-40px) scale(1.2);
+    opacity: 0.9;
+    transform: translateY(-45px) scale(1.25);
   }
   100% {
     opacity: 0;
-    transform: translateY(-90px) scale(1);
+    transform: translateY(-95px) scale(1.05);
   }
 }
 
@@ -98,7 +104,131 @@ body {
   animation: float-up 1.8s ease-out forwards;
 }
 
-/* Video container aspect ratio helper */
-.aspect-video-player {
-  aspect-ratio: 16 / 9;
+/* Shimmer animation for card skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Football Tactical Pitch Grass Striping */
+.tactical-pitch {
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      #134e32 0px,
+      #134e32 30px,
+      #0f3f28 30px,
+      #0f3f28 60px
+    );
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Pitch line markings */
+.pitch-halfway-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-50%);
+}
+
+.pitch-center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.pitch-center-spot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.pitch-penalty-box-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 170px;
+  height: 65px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top: none;
+  transform: translateX(-50%);
+}
+
+.pitch-penalty-box-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 170px;
+  height: 65px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-bottom: none;
+  transform: translateX(-50%);
+}
+
+.pitch-goal-box-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 90px;
+  height: 26px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top: none;
+  transform: translateX(-50%);
+}
+
+.pitch-goal-box-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 90px;
+  height: 26px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-bottom: none;
+  transform: translateX(-50%);
+}
+
+/* Glass card styling */
+.glass-panel {
+  background: rgba(14, 21, 38, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Glow badge helper */
+.glow-emerald {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.4);
 }
