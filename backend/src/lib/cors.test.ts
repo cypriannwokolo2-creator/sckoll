@@ -22,8 +22,10 @@ describe("isOriginAllowed", () => {
     expect(isOriginAllowed("", PROD)).toBe(true);
   });
 
-  it("allows the configured app origins", () => {
+  it("allows the configured app origins and sckoll domains", () => {
     expect(isOriginAllowed("https://www.sckoll.com", PROD)).toBe(true);
+    expect(isOriginAllowed("https://sckoll.com", PROD)).toBe(true);
+    expect(isOriginAllowed("https://app.sckoll.com", PROD)).toBe(true);
     expect(isOriginAllowed("http://localhost:3000", DEV)).toBe(true);
   });
 

@@ -10,10 +10,12 @@
 import type { Env } from "../env.js";
 
 const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+const SCKOLL_ORIGIN = /^https?:\/\/([a-zA-Z0-9-]+\.)*sckoll\.com$/;
 
 export function isOriginAllowed(origin: string | undefined | null, env: Env): boolean {
   if (!origin) return true; // curl, server-to-server, same-origin navigations
   if (origin === env.FRONTEND_URL || origin === env.SITE_URL) return true;
+  if (SCKOLL_ORIGIN.test(origin)) return true;
   if (env.NODE_ENV !== "production" && LOCALHOST_ORIGIN.test(origin)) return true;
   return false;
 }

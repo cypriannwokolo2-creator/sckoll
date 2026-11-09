@@ -363,9 +363,112 @@ function HomePageContent() {
   );
 }
 
+function HomeLoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#070a13] text-zinc-100 flex flex-col selection:bg-emerald-500 selection:text-black">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-10">
+        {/* HERO MARQUEE: Featured Live Match Preview Shell */}
+        <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#10192e] via-[#0b1120] to-[#070a13] p-6 sm:p-10 shadow-2xl">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 max-w-2xl text-center lg:text-left">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white font-black text-xs rounded-full uppercase tracking-wider shadow-lg shadow-red-600/40">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  LIVE NOW
+                </span>
+                <span className="px-3 py-1 bg-white/10 text-zinc-300 text-xs font-semibold rounded-full border border-white/5">
+                  Premier League
+                </span>
+                <span className="flex items-center gap-1 text-xs text-zinc-400">
+                  <Users className="w-3.5 h-3.5 text-red-400" />
+                  <span>84,200 watching</span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 py-2">
+                <div className="text-center sm:text-right">
+                  <h2 className="text-xl sm:text-3xl font-black text-white">Arsenal</h2>
+                  <span className="text-xs text-zinc-400 font-medium">ARS • Home</span>
+                </div>
+                <div className="px-4 py-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-sm">
+                  <span className="text-3xl sm:text-5xl font-black text-emerald-400 tracking-wider">2 - 1</span>
+                </div>
+                <div className="text-center sm:text-left">
+                  <h2 className="text-xl sm:text-3xl font-black text-white">Manchester City</h2>
+                  <span className="text-xs text-zinc-400 font-medium">MCI • Away</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-zinc-400 pt-1">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Ultra HD 4K 60fps</span>
+                </span>
+                <span>•</span>
+                <span>Emirates Stadium</span>
+                <span>•</span>
+                <span>English Commentary</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
+              <Link
+                href="/watch/ars-mci-live"
+                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-base rounded-2xl transition-all shadow-xl shadow-emerald-500/25 hover:scale-102"
+              >
+                <Play className="w-5 h-5 fill-black" />
+                <span>Watch Live Stream Now</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* CONTROLS SKELETON */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-1.5 p-1 bg-[#0f172a] rounded-xl border border-white/10 text-xs font-bold">
+              <span className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black shadow-md">All Matches</span>
+              <span className="px-3 py-1.5 rounded-lg text-zinc-400">Live Now</span>
+              <span className="px-3 py-1.5 rounded-lg text-zinc-400">Upcoming</span>
+              <span className="px-3 py-1.5 rounded-lg text-zinc-400">Replays</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>Multi-server zero buffering enabled</span>
+            </div>
+          </div>
+        </div>
+
+        {/* MATCH FEED SKELETON */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-black text-white flex items-center gap-2">
+              <Flame className="w-5 h-5 text-emerald-400" />
+              <span>Match Broadcast Schedule</span>
+            </h3>
+            <span className="text-xs text-zinc-400">Auto-updating live every 8s</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-44 bg-[#0e1628] rounded-2xl animate-pulse border border-white/5" />
+            ))}
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070a13]" />}>
+    <Suspense fallback={<HomeLoadingSkeleton />}>
       <HomePageContent />
     </Suspense>
   );
