@@ -46,7 +46,7 @@ function HomePageContent() {
   const [activeStatus, setActiveStatus] = useState<"all" | "live" | "upcoming" | "finished">("all");
   const [selectedLeague, setSelectedLeague] = useState(initialLeague);
   const [selectedMatch, setSelectedMatch] = useState<MatchSummary | null>(null);
-  const [viewMode, setViewMode] = useState<"sofa-list" | "cards">("sofa-list");
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const [favorites, setFavorites] = useState<Set<string>>(new Set(["ars-mci-live", "rma-bar-live"]));
   const [filterFavorites, setFilterFavorites] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -297,16 +297,16 @@ function HomePageContent() {
               {/* View Toggle */}
               <div className="flex items-center gap-1 bg-[#090f1d] p-1 rounded-xl border border-white/10">
                 <button
-                  onClick={() => setViewMode("sofa-list")}
+                  onClick={() => setViewMode("list")}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-xs transition-all ${
-                    viewMode === "sofa-list"
+                    viewMode === "list"
                       ? "bg-emerald-500 text-black shadow-sm font-black"
                       : "text-zinc-400 hover:text-white"
                   }`}
-                  title="SofaScore & LiveScore table view"
+                  title="Scores table view"
                 >
                   <LayoutList className="w-3.5 h-3.5" />
-                  <span>SofaScore Table</span>
+                  <span>Scores Table</span>
                 </button>
 
                 <button
@@ -352,7 +352,7 @@ function HomePageContent() {
                   Reset All Filters
                 </button>
               </div>
-            ) : viewMode === "sofa-list" ? (
+            ) : viewMode === "list" ? (
               /* SOFASCORE & LIVESCORE LEAGUE GROUP ACCORDIONS */
               <div className="space-y-4">
                 {leagueGroups.map((group) => (

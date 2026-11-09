@@ -50,8 +50,8 @@ function getPositionCoordinates(pos: string, index: number, totalInLine: number)
   return { x: 50, y: 50 };
 }
 
-// Generate realistic SofaScore rating if missing
-function getSofaRating(p: PlayerInfo, team: "home" | "away"): number {
+// Generate realistic player rating if missing
+function getPlayerRating(p: PlayerInfo, team: "home" | "away"): number {
   if (p.rating) return p.rating;
   // Deterministic calculation based on player number and name
   const hash = (p.number * 7 + p.name.length * 13) % 25;
@@ -110,7 +110,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
         <div className="text-xs text-zinc-400 hidden sm:flex items-center gap-3">
           <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg font-bold border border-emerald-500/20">
             <Star className="w-3.5 h-3.5 fill-emerald-400" />
-            <span>SofaScore Player Ratings</span>
+            <span>Match Ratings</span>
           </span>
           <span>Manager: <strong className="text-white">{currentLineup?.coach || "Head Coach"}</strong></span>
         </div>
@@ -141,7 +141,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
           {/* Goalkeepers */}
           {gk.map((p: PlayerInfo, idx: number) => {
             const { x, y } = getPositionCoordinates(p.pos, idx, gk.length);
-            const rating = getSofaRating(p, selectedTeam);
+            const rating = getPlayerRating(p, selectedTeam);
             return (
               <PlayerNode
                 key={p.number}
@@ -159,7 +159,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
           {/* Defenders */}
           {def.map((p: PlayerInfo, idx: number) => {
             const { x, y } = getPositionCoordinates(p.pos, idx, def.length);
-            const rating = getSofaRating(p, selectedTeam);
+            const rating = getPlayerRating(p, selectedTeam);
             return (
               <PlayerNode
                 key={p.number}
@@ -176,7 +176,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
           {/* Midfielders */}
           {mid.map((p: PlayerInfo, idx: number) => {
             const { x, y } = getPositionCoordinates(p.pos, idx, mid.length);
-            const rating = getSofaRating(p, selectedTeam);
+            const rating = getPlayerRating(p, selectedTeam);
             return (
               <PlayerNode
                 key={p.number}
@@ -193,7 +193,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
           {/* Forwards */}
           {fwd.map((p: PlayerInfo, idx: number) => {
             const { x, y } = getPositionCoordinates(p.pos, idx, fwd.length);
-            const rating = getSofaRating(p, selectedTeam);
+            const rating = getPlayerRating(p, selectedTeam);
             return (
               <PlayerNode
                 key={p.number}
@@ -210,9 +210,9 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
 
         {/* Bottom Pitch Note */}
         <div className="relative z-10 text-[10px] text-white/80 font-medium text-center bg-black/50 backdrop-blur-md py-1 px-3 rounded-full mx-auto border border-white/10 flex items-center gap-2">
-          <span>SofaScore Tactical Formation</span>
+          <span>Live Tactical Formation</span>
           <span>•</span>
-          <span className="text-emerald-400 font-bold">Live Player Heat & Ratings</span>
+          <span className="text-emerald-400 font-bold">Player Heat & Ratings</span>
         </div>
       </div>
 
@@ -228,7 +228,7 @@ export function TacticalPitch({ homeTeam, awayTeam }: TacticalPitchProps) {
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {bench.map((sub: PlayerInfo) => {
-              const subRating = getSofaRating(sub, selectedTeam);
+              const subRating = getPlayerRating(sub, selectedTeam);
               return (
                 <div
                   key={sub.number}

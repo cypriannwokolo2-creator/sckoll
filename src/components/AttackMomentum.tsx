@@ -240,7 +240,7 @@ export function AttackMomentum({
             <span>🟥</span> Red Card
           </span>
         </div>
-        <span className="text-zinc-500">SofaScore Match Pressure Engine v2</span>
+        <span className="text-zinc-500">Live Match Pressure & Events</span>
       </div>
     </div>
   );

@@ -22,7 +22,7 @@ export default function SchedulePage() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [activeDate, setActiveDate] = useState<"today" | "tomorrow" | "all">("today");
   const [activeSport, setActiveSport] = useState("all");
-  const [viewMode, setViewMode] = useState<"sofa-list" | "cards">("sofa-list");
+  const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [userTimezone, setUserTimezone] = useState("Local Time");
@@ -132,16 +132,16 @@ export default function SchedulePage() {
             {/* View Mode Toggle */}
             <div className="flex items-center gap-1 bg-[#0f172a] p-1 rounded-xl border border-white/10 text-xs font-bold shadow-lg">
               <button
-                onClick={() => setViewMode("sofa-list")}
+                onClick={() => setViewMode("list")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                  viewMode === "sofa-list"
+                  viewMode === "list"
                     ? "bg-emerald-500 text-black font-black"
                     : "text-zinc-400 hover:text-white"
                 }`}
-                title="SofaScore List"
+                title="Scores table view"
               >
                 <LayoutList className="w-3.5 h-3.5" />
-                <span>SofaScore</span>
+                <span>Scores Table</span>
               </button>
 
               <button
@@ -215,7 +215,7 @@ export default function SchedulePage() {
               View All Fixtures
             </button>
           </div>
-        ) : viewMode === "sofa-list" ? (
+        ) : viewMode === "list" ? (
           /* SOFASCORE LEAGUE GROUPED FIXTURES */
           <div className="space-y-4">
             {leagueGroups.map((group) => (
