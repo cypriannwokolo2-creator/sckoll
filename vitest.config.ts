@@ -9,7 +9,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules/**", ".next/**", "backend/**"],
+    exclude: ["node_modules/**", ".next/**", "backend/**", "src/legacy/**"],
     restoreMocks: true,
     coverage: {
       provider: "v8",

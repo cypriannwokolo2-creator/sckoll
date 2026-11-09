@@ -1,102 +1,85 @@
-import { screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { renderWithSession } from "@/test/session";
-import Home from "./page";
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import HomePage from "./page";
 
-const { replaceMock } = vi.hoisted(() => ({ replaceMock: vi.fn() }));
-
+// Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: replaceMock, back: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
-type SessionUser = { id: string; email: string; name: string | null; role: string; emailVerified: boolean };
+// Mock fetch for matches and highlights
+const mockMatches = [
+  {
+    id: "ars-mci-live",
+    sportId: "football",
+    leagueId: "premier-league",
+    leagueName: "Premier League",
+    homeTeamName: "Arsenal FC",
+    homeTeamShort: "ARS",
+    awayTeamName: "Manchester City",
+    awayTeamShort: "MCI",
+    status: "live",
+    minute: 68,
+    period: "2nd Half",
+    homeScore: 2,
+    awayScore: 1,
+    startTime: new Date().toISOString(),
+    venue: "Emirates Stadium",
+    isFeatured: true,
+    viewersCount: 78000,
+  },
+];
 
-const MEMBER: SessionUser = {
-  id: "u-1",
-  email: "member@sckoll.com",
-  name: "Member",
-  role: "talent",
-  emailVerified: true,
-};
+vi.stubGlobal(
+  "fetch",
+  vi.fn(async (url: string) => {
+    if (url.includes("/v1/matches")) {
+      return {
+        ok: true,
+        json: async () => ({ matches: mockMatches }),
+      };
+    }
+    if (url.includes("/v1/highlights")) {
+      return {
+        ok: true,
+        json: async () => ({ highlights: [] }),
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({ ok: true }),
+    };
+  })
+);
 
-function stubSession(session: SessionUser | null) {
-  const fn = vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () =>
-    session
-      ? ({ ok: true, status: 200, json: async () => ({ ok: true, user: session, profile: null }) } as unknown as Response)
-      : ({ ok: false, status: 401, json: async () => ({ error: "unauthorized" }) } as unknown as Response),
-  );
-  vi.stubGlobal("fetch", fn);
-  return fn;
-}
+describe("Match Streaming Homepage", () => {
+  it("renders Sckoll streaming header and brand", async () => {
+    render(<HomePage />);
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  replaceMock.mockReset();
-});
-
-describe("landing page auth calls to action", () => {
-  it("shows sign-in and sign-up to a visitor", async () => {
-    stubSession(null);
-
-    renderWithSession(<Home />);
-
-    expect(await screen.findByRole("link", { name: "Log in" })).toHaveAttribute("href", "/sign-in");
-    expect(screen.getAllByRole("link", { name: /Sign up free/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("SCKOLL").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("LIVE").length).toBeGreaterThan(0);
+    expect(screen.getByText("Live Matches")).toBeInTheDocument();
+    expect(screen.getByText("Schedule")).toBeInTheDocument();
+    expect(screen.getByText("Standings")).toBeInTheDocument();
+    expect(screen.getByText("Highlights")).toBeInTheDocument();
   });
 
-  it("replaces the sign-in prompts for a signed-in member", async () => {
-    stubSession(MEMBER);
+  it("renders the sports navigation filter pills", async () => {
+    render(<HomePage />);
 
-    renderWithSession(<Home />);
+    expect(screen.getByText("All Sports")).toBeInTheDocument();
+    expect(screen.getByText("Football")).toBeInTheDocument();
+    expect(screen.getByText("Basketball")).toBeInTheDocument();
+  });
+
+  it("renders live match schedule and status tabs", async () => {
+    render(<HomePage />);
 
     await waitFor(() => {
-      expect(screen.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
+      expect(screen.getByText(/All Matches/)).toBeInTheDocument();
+      expect(screen.getByText(/Live Now/)).toBeInTheDocument();
     });
-    const workspace = screen.getAllByRole("link", { name: "Your workspace" });
-    expect(workspace.length).toBeGreaterThan(0);
-    expect(workspace[0]).toHaveAttribute("href", "/profile");
-  });
-
-  it("keeps a signed-in member off the sign-up pages entirely", async () => {
-    stubSession(MEMBER);
-
-    renderWithSession(<Home />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("link", { name: "Your workspace" }).length).toBeGreaterThan(0);
-    });
-    const signUpLinks = screen
-      .getAllByRole("link")
-      .filter((link) => link.getAttribute("href")?.startsWith("/sign-up"));
-    expect(signUpLinks).toHaveLength(0);
-  });
-
-  it("still shows the sign-up links to a visitor", async () => {
-    stubSession(null);
-
-    renderWithSession(<Home />);
-
-    await screen.findByRole("link", { name: "Log in" });
-    const signUpLinks = screen
-      .getAllByRole("link")
-      .filter((link) => link.getAttribute("href")?.startsWith("/sign-up"));
-    expect(signUpLinks.length).toBeGreaterThan(0);
-  });
-
-  it("sends a signed-in member to their workspace", async () => {
-    stubSession(MEMBER);
-
-    renderWithSession(<Home />);
-
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/profile"));
-  });
-
-  it("leaves a visitor on the landing page", async () => {
-    stubSession(null);
-
-    renderWithSession(<Home />);
-
-    await screen.findByRole("link", { name: "Log in" });
-    expect(replaceMock).not.toHaveBeenCalled();
   });
 });

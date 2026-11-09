@@ -1,23 +1,17 @@
 import { pgTable, text, timestamp, uuid, boolean, jsonb, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 /**
- * Sckoll v1 auth + profiles schema.
- * - users: email/password (nullable hash for Google-only accounts) + google_sub for stable linking.
- * - sessions: opaque-token sessions (sha256 hash stored, raw token in HttpOnly cookie).
- * - verification_tokens / password_reset_tokens: single-use, expiring.
- * - profiles: one row per user, role from the sign-up switch (talent|client|both).
+ * Users & Session Authentication
  */
-
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
   name: text("name"),
   passwordHash: text("password_hash"),
   googleSub: text("google_sub").unique(),
-  role: text("role", { enum: ["talent", "client", "both"] })
-    .notNull()
-    .default("talent"),
+  avatarUrl: text("avatar_url"),
+  role: text("role", { enum: ["user", "vip", "admin"] }).notNull().default("user"),
+  favoriteTeamId: text("favorite_team_id"),
   emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -54,327 +48,292 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const profiles = pgTable("profiles", {
-  userId: uuid("user_id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  headline: text("headline"),
-  bio: text("bio"),
-  location: text("location"),
-  availability: text("availability"),
-  hourlyRate: text("hourly_rate"),
-  avatarUrl: text("avatar_url"),
-  skills: jsonb("skills").$type<string[]>().notNull().default([]),
-  links: jsonb("links").$type<Record<string, string>>().notNull().default({}),
-  /** Talent payout destination (bank code, account number, account name). Collected for Paystack Transfers. */
-  payoutAccount: jsonb("payout_account").$type<{ bankCode?: string; accountNumber?: string; accountName?: string } | null>(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Client shortlists: talent saved with team notes, optional opportunity context. */
-export const shortlists = pgTable(
-  "shortlists",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    talentId: uuid("talent_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    opportunityId: uuid("opportunity_id").references(() => opportunities.id, { onDelete: "set null" }),
-    notes: text("notes").notNull().default(""),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("shortlists_client_talent_unique").on(t.clientId, t.talentId)],
-);
-
-export type User = typeof users.$inferSelect;
-export type Profile = typeof profiles.$inferSelect;
-
 /**
- * Marketplace: client-posted work. Talent discovers via /v1/opportunities,
- * applies in Phase 4. Status is a soft lifecycle — rows are never hard-deleted.
+ * Sports Directory
  */
-export const opportunities = pgTable("opportunities", {
-  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  clientId: uuid("client_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  category: text("category").notNull().default("development-it"),
-  type: text("type", { enum: ["project", "role", "contract"] }).notNull().default("project"),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  skills: jsonb("skills").$type<string[]>().notNull().default([]),
-  budgetMin: integer("budget_min"),
-  budgetMax: integer("budget_max"),
-  rateType: text("rate_type", { enum: ["fixed", "hourly", "salary"] }).notNull().default("fixed"),
-  location: text("location"),
-  remote: boolean("remote").notNull().default(true),
-  status: text("status", { enum: ["draft", "open", "closed"] }).notNull().default("open"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Canonical skill taxonomy backing categories + matching. Seeded, not user input. */
-export const skills = pgTable("skills", {
-  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+export const sports = pgTable("sports", {
+  id: text("id").primaryKey(), // e.g. "football", "basketball", "tennis", "mma", "motorsport"
+  name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  label: text("label").notNull(),
-  category: text("category").notNull(),
-});
-
-/** Append-only audit trail for marketplace actions (Phase 3+: create/status). */
-export const auditLog = pgTable("audit_log", {
-  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
-  action: text("action").notNull(),
-  targetType: text("target_type").notNull(),
-  targetId: text("target_id").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  icon: text("icon").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
 });
 
 /**
- * Talent applications to opportunities. One row per (opportunity, talent).
- * Status lifecycle: applied → shortlisted → accepted | rejected; accepted is
- * terminal and closes the opportunity to new applies (Phase 4+).
+ * Leagues & Competitions
  */
-export const applications = pgTable(
-  "applications",
+export const leagues = pgTable("leagues", {
+  id: text("id").primaryKey(), // e.g. "premier-league", "champions-league", "la-liga", "serie-a", "bundesliga", "nba", "ufc"
+  sportId: text("sport_id")
+    .notNull()
+    .references(() => sports.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  shortName: text("short_name"),
+  country: text("country"),
+  logoUrl: text("logo_url"),
+  season: text("season").default("2026/27"),
+  displayOrder: integer("display_order").notNull().default(0),
+});
+
+/**
+ * Teams & Competitors
+ */
+export const teams = pgTable("teams", {
+  id: text("id").primaryKey(), // e.g. "arsenal", "real-madrid", "lakers"
+  leagueId: text("league_id")
+    .notNull()
+    .references(() => leagues.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  shortName: text("short_name").notNull(),
+  logoUrl: text("logo_url"),
+  stadium: text("stadium"),
+  primaryColor: text("primary_color").default("#10b981"),
+});
+
+export interface MatchStats {
+  possession: [number, number]; // [home, away]
+  shots: [number, number];
+  shotsOnTarget: [number, number];
+  corners: [number, number];
+  fouls: [number, number];
+  yellowCards: [number, number];
+  redCards: [number, number];
+  saves: [number, number];
+}
+
+/**
+ * Live & Scheduled Matches
+ */
+export const matches = pgTable(
+  "matches",
   {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    opportunityId: uuid("opportunity_id")
+    id: text("id").primaryKey(), // e.g. "ars-mci-2026", "rma-bar-2026"
+    sportId: text("sport_id")
       .notNull()
-      .references(() => opportunities.id, { onDelete: "cascade" }),
-    talentId: uuid("talent_id")
+      .references(() => sports.id, { onDelete: "cascade" }),
+    leagueId: text("league_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    pitch: text("pitch").notNull(),
-    bidAmount: integer("bid_amount"),
-    bidType: text("bid_type", { enum: ["fixed", "hourly"] }).notNull().default("fixed"),
-    status: text("status", { enum: ["applied", "shortlisted", "accepted", "rejected"] })
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    homeTeamId: text("home_team_id")
       .notNull()
-      .default("applied"),
-    fitScore: integer("fit_score"),
+      .references(() => teams.id, { onDelete: "cascade" }),
+    awayTeamId: text("away_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["upcoming", "live", "ht", "finished", "postponed"] })
+      .notNull()
+      .default("upcoming"),
+    minute: integer("minute").notNull().default(0),
+    period: text("period").notNull().default("Scheduled"), // "Scheduled", "1st Half", "Halftime", "2nd Half", "Extra Time", "FT"
+    homeScore: integer("home_score").notNull().default(0),
+    awayScore: integer("away_score").notNull().default(0),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    venue: text("venue"),
+    round: text("round"),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    viewersCount: integer("viewers_count").notNull().default(0),
+    stats: jsonb("stats").$type<MatchStats>().default({
+      possession: [50, 50],
+      shots: [0, 0],
+      shotsOnTarget: [0, 0],
+      corners: [0, 0],
+      fouls: [0, 0],
+      yellowCards: [0, 0],
+      redCards: [0, 0],
+      saves: [0, 0],
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("applications_opp_idx").on(t.opportunityId),
-    index("applications_talent_idx").on(t.talentId),
-    uniqueIndex("applications_opp_talent_unique").on(t.opportunityId, t.talentId),
-  ],
+    index("matches_status_idx").on(t.status),
+    index("matches_league_idx").on(t.leagueId),
+    index("matches_start_time_idx").on(t.startTime),
+  ]
 );
 
-/** Vector embeddings for semantic matching (pgvector). Provider-swappable; local deterministic embedder ships as v1. */
-export const embeddings = pgTable(
-  "embeddings",
+/**
+ * Multi-Server Stream Feeds
+ */
+export const streams = pgTable(
+  "streams",
   {
     id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    ownerType: text("owner_type", { enum: ["opportunity", "profile"] }).notNull(),
-    ownerId: uuid("owner_id").notNull(),
-    embedding: text("embedding").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    serverName: text("server_name").notNull(), // e.g. "Server 1 (Ultra HD 1080p)", "Server 2 (English 60fps)"
+    streamType: text("stream_type", { enum: ["hls", "iframe", "mp4", "embed"] })
+      .notNull()
+      .default("hls"),
+    streamUrl: text("stream_url").notNull(),
+    quality: text("quality").notNull().default("1080p"), // "4K", "1080p", "720p", "Auto"
+    language: text("language").notNull().default("EN"),
+    bitrate: text("bitrate").default("6000 kbps"),
+    isDefault: boolean("is_default").notNull().default(false),
+    isWorking: boolean("is_working").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("embeddings_owner_unique").on(t.ownerType, t.ownerId)],
+  (t) => [index("streams_match_idx").on(t.matchId)]
 );
 
-/** Match telemetry: what was shown/clicked/applied with score components. Feeds future weight tuning. */
+/**
+ * Live Match Events (Goals, Cards, Substitutions)
+ */
 export const matchEvents = pgTable(
   "match_events",
   {
     id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
-    eventType: text("event_type", { enum: ["view", "click", "apply"] }).notNull(),
-    targetType: text("target_type", { enum: ["opportunity", "talent"] }).notNull(),
-    targetId: text("target_id").notNull(),
-    scoreRules: integer("score_rules"),
-    scoreVector: integer("score_vector"),
-    finalScore: integer("final_score"),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    minute: integer("minute").notNull(),
+    type: text("type", { enum: ["goal", "yellow_card", "red_card", "sub", "penalty", "var"] }).notNull(),
+    teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }),
+    player: text("player").notNull(),
+    detail: text("detail"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("match_events_user_idx").on(t.userId, t.createdAt)],
+  (t) => [index("match_events_match_idx").on(t.matchId, t.minute)]
 );
-export const savedSearches = pgTable("saved_searches", {
-  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  query: text("query").notNull().default(""),
-  filters: jsonb("filters").$type<Record<string, string>>().notNull().default({}),
-  emailAlerts: boolean("email_alerts").notNull().default(false),
-  lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
 
-/** Per-user notification channel preferences. One row per user, created on demand. */
-export const notificationPrefs = pgTable("notification_prefs", {
-  userId: uuid("user_id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  emailEnabled: boolean("email_enabled").notNull().default(true),
-  inappEnabled: boolean("inapp_enabled").notNull().default(true),
-  /** Per-event email toggles, e.g. {"application.received": false}. Absent = enabled. */
-  mutedEvents: jsonb("muted_events").$type<string[]>().notNull().default([]),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export interface PlayerInfo {
+  number: number;
+  name: string;
+  pos: string;
+  captain?: boolean;
+}
 
-/** In-app notification inbox. Email delivery is handled at fan-out, not stored. */
-export const notifications = pgTable(
-  "notifications",
+/**
+ * Match Lineups & Tactics
+ */
+export const lineups = pgTable(
+  "lineups",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    formation: text("formation").notNull().default("4-3-3"),
+    startingEleven: jsonb("starting_eleven").$type<PlayerInfo[]>().notNull().default([]),
+    substitutes: jsonb("substitutes").$type<PlayerInfo[]>().notNull().default([]),
+    coach: text("coach"),
+  },
+  (t) => [uniqueIndex("lineups_match_team_unique").on(t.matchId, t.teamId)]
+);
+
+/**
+ * Real-Time Fan Live Chat
+ */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    username: text("username").notNull(),
+    userBadge: text("user_badge").notNull().default("FAN"), // "FAN", "VIP", "MOD", "PRO"
+    message: text("message").notNull(),
+    teamFlair: text("team_flair"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("chat_messages_match_idx").on(t.matchId, t.createdAt)]
+);
+
+/**
+ * Match Reactions
+ */
+export const chatReactions = pgTable(
+  "chat_reactions",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    reactionType: text("reaction_type").notNull(), // 'goal' | 'fire' | 'clap' | 'goat' | 'shock' | 'heart'
+    count: integer("count").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("chat_reactions_match_type_unique").on(t.matchId, t.reactionType)]
+);
+
+/**
+ * Match Highlights & VOD Recaps
+ */
+export const highlights = pgTable(
+  "highlights",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id").references(() => matches.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    competition: text("competition").notNull(),
+    videoUrl: text("video_url").notNull(),
+    thumbnailUrl: text("thumbnail_url").notNull(),
+    duration: text("duration").notNull().default("08:30"),
+    views: integer("views").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("highlights_match_idx").on(t.matchId)]
+);
+
+/**
+ * League Standings & Form
+ */
+export const leagueStandings = pgTable(
+  "league_standings",
+  {
+    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    leagueId: text("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    rank: integer("rank").notNull(),
+    played: integer("played").notNull().default(0),
+    won: integer("won").notNull().default(0),
+    drawn: integer("drawn").notNull().default(0),
+    lost: integer("lost").notNull().default(0),
+    goalsFor: integer("goals_for").notNull().default(0),
+    goalsAgainst: integer("goals_against").notNull().default(0),
+    goalDiff: integer("goal_diff").notNull().default(0),
+    points: integer("points").notNull().default(0),
+    form: text("form").notNull().default("W,W,D,L,W"),
+  },
+  (t) => [uniqueIndex("standings_league_team_unique").on(t.leagueId, t.teamId)]
+);
+
+/**
+ * User Favorites (Followed Teams or Matches)
+ */
+export const userFavorites = pgTable(
+  "user_favorites",
   {
     id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(),
-    title: text("title").notNull(),
-    body: text("body").notNull().default(""),
-    link: text("link").notNull().default("/notifications"),
-    readAt: timestamp("read_at", { withTimezone: true }),
+    targetType: text("target_type", { enum: ["team", "match", "league"] }).notNull(),
+    targetId: text("target_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+  (t) => [uniqueIndex("user_favorites_user_target_unique").on(t.userId, t.targetType, t.targetId)]
 );
 
-export type Opportunity = typeof opportunities.$inferSelect;
-export type Application = typeof applications.$inferSelect;
-export type SavedSearch = typeof savedSearches.$inferSelect;
-export type ShortlistEntry = typeof shortlists.$inferSelect;
-export type NotificationRow = typeof notifications.$inferSelect;
-/** Work agreements created from accepted applications. One per opportunity. */
-export const contracts = pgTable(
-  "contracts",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    opportunityId: uuid("opportunity_id")
-      .notNull()
-      .references(() => opportunities.id, { onDelete: "cascade" }),
-    applicationId: uuid("application_id")
-      .notNull()
-      .references(() => applications.id, { onDelete: "cascade" }),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    talentId: uuid("talent_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    scope: text("scope").notNull(),
-    status: text("status", { enum: ["draft", "active", "completed", "cancelled"] })
-      .notNull()
-      .default("draft"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("contracts_opportunity_unique").on(t.opportunityId)],
-);
-
-/** Payment-tied delivery checkpoints. Client funds scope; approvals release trust. */
-export const milestones = pgTable(
-  "milestones",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    contractId: uuid("contract_id")
-      .notNull()
-      .references(() => contracts.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
-    amount: integer("amount"),
-    dueDate: timestamp("due_date", { withTimezone: true }),
-    status: text("status", { enum: ["pending", "submitted", "approved", "rejected"] })
-      .notNull()
-      .default("pending"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index("milestones_contract_idx").on(t.contractId)],
-);
-
-/** Contract-scoped messaging with read receipts + scam-pattern flags. */
-export const messages = pgTable(
-  "messages",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    contractId: uuid("contract_id")
-      .notNull()
-      .references(() => contracts.id, { onDelete: "cascade" }),
-    senderId: uuid("sender_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    body: text("body").notNull(),
-    flagged: boolean("flagged").notNull().default(false),
-    flagReason: text("flag_reason"),
-    readAt: timestamp("read_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index("messages_contract_idx").on(t.contractId, t.createdAt)],
-);
-
-/** Two-sided reviews, only on completed contracts, one per side. */
-export const reviews = pgTable(
-  "reviews",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    contractId: uuid("contract_id")
-      .notNull()
-      .references(() => contracts.id, { onDelete: "cascade" }),
-    raterId: uuid("rater_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    rateeId: uuid("ratee_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    stars: integer("stars").notNull(),
-    text: text("text").notNull().default(""),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("reviews_contract_rater_unique").on(t.contractId, t.raterId)],
-);
-
-/** Dispute flags → admin review queue stub. */
-export const contractFlags = pgTable("contract_flags", {
-  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  contractId: uuid("contract_id")
-    .notNull()
-    .references(() => contracts.id, { onDelete: "cascade" }),
-  reporterId: uuid("reporter_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  reason: text("reason").notNull(),
-  status: text("status", { enum: ["open", "resolved"] }).notNull().default("open"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Ledger for every money movement. Provider-agnostic: Paystack now, Flutterwave/Stripe adapters later. */
-export const payments = pgTable(
-  "payments",
-  {
-    id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    contractId: uuid("contract_id")
-      .notNull()
-      .references(() => contracts.id, { onDelete: "cascade" }),
-    milestoneId: uuid("milestone_id").references(() => milestones.id, { onDelete: "set null" }),
-    direction: text("direction", { enum: ["in", "out"] }).notNull(),
-    amount: integer("amount").notNull(),
-    currency: text("currency").notNull().default("NGN"),
-    provider: text("provider").notNull().default("paystack"),
-    providerRef: text("provider_ref").unique(),
-    idempotencyKey: text("idempotency_key").notNull().unique(),
-    status: text("status", { enum: ["pending", "held", "released", "failed", "refunded", "frozen"] })
-      .notNull()
-      .default("pending"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index("payments_contract_idx").on(t.contractId)],
-);
-
-export type ContractRow = typeof contracts.$inferSelect;
-export type PaymentRow = typeof payments.$inferSelect;
-
-/** GIN full-text index over title + description for marketplace search. */
-export const opportunitiesFts = index("opportunities_fts_idx").using(
-  "gin",
-  sql`to_tsvector('english', ${opportunities.title} || ' ' || ${opportunities.description})`,
-);
+export type User = typeof users.$inferSelect;
+export type Sport = typeof sports.$inferSelect;
+export type League = typeof leagues.$inferSelect;
+export type Team = typeof teams.$inferSelect;
+export type Match = typeof matches.$inferSelect;
+export type Stream = typeof streams.$inferSelect;
+export type MatchEvent = typeof matchEvents.$inferSelect;
+export type Lineup = typeof lineups.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type Highlight = typeof highlights.$inferSelect;
+export type LeagueStanding = typeof leagueStandings.$inferSelect;
+export type UserFavorite = typeof userFavorites.$inferSelect;

@@ -10,15 +10,14 @@ import { isOriginAllowed } from "./lib/cors.js";
 import { genReqId, loggerOptions } from "./lib/logger.js";
 import { initMetrics, observeRequest, registry } from "./lib/metrics.js";
 import { captureError, initSentry } from "./lib/observability.js";
-import { registerApplicationRoutes } from "./routes/applications.js";
-import { registerContractRoutes } from "./routes/contracts.js";
-import { registerNotificationRoutes } from "./routes/notifications.js";
-import { registerPaymentRoutes } from "./routes/payments.js";
-import { registerShortlistRoutes } from "./routes/shortlists.js";
 import { registerAuthRoutes } from "./routes/auth.js";
-import { registerContactRoutes } from "./routes/contact.js";
-import { registerOpportunityRoutes } from "./routes/opportunities.js";
-import { registerProfileRoutes } from "./routes/profiles.js";
+import { registerMatchRoutes } from "./routes/matches.js";
+import { registerStreamRoutes } from "./routes/streams.js";
+import { registerChatRoutes } from "./routes/chat.js";
+import { registerLeagueRoutes } from "./routes/leagues.js";
+import { registerHighlightRoutes } from "./routes/highlights.js";
+import { registerFavoriteRoutes } from "./routes/favorites.js";
+import { startLiveSimulation } from "./lib/simulator.js";
 
 export async function buildServer(overrides?: Partial<Env>) {
   const env = { ...loadEnv(), ...overrides };
@@ -142,16 +141,22 @@ export async function buildServer(overrides?: Partial<Env>) {
   });
 
   await registerAuthRoutes(app, env);
-  await registerApplicationRoutes(app, env);
-  await registerContractRoutes(app, env);
-  await registerPaymentRoutes(app, env);
-  await registerNotificationRoutes(app, env);
-  await registerShortlistRoutes(app, env);
-  await registerContactRoutes(app, env);
-  await registerOpportunityRoutes(app, env);
-  await registerProfileRoutes(app, env);
+  await registerMatchRoutes(app, env);
+  await registerStreamRoutes(app, env);
+  await registerChatRoutes(app, env);
+  await registerLeagueRoutes(app, env);
+  await registerHighlightRoutes(app, env);
+  await registerFavoriteRoutes(app, env);
+
+  let stopSim: (() => void) | undefined;
+  if (env.NODE_ENV !== "test") {
+    stopSim = startLiveSimulation(env.DATABASE_URL);
+  }
 
   app.addHook("onClose", async () => {
+    if (stopSim) {
+      stopSim();
+    }
     if (redis) {
       redis.disconnect();
     }

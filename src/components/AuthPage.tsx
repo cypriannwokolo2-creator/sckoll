@@ -1,264 +1,182 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { ApiError, api, googleSignInUrl } from "@/lib/api";
-import { useSession } from "@/lib/session";
-import { SIGNED_IN_HOME } from "@/lib/session-hint";
-import Mark from "@/components/Mark";
-
-/** Copy for each failure the API's Google callback can bounce back with. */
-const GOOGLE_ERROR_COPY: Record<string, string> = {
-  google_cancelled: "Google sign-in was cancelled.",
-  google_failed: "Google sign-in failed. Please try again.",
-  google_state: "Your Google sign-in link expired. Please try again.",
-  google_unverified: "That Google email is not verified, so it cannot be linked to an account.",
-  google_disabled: "Google sign-in is not available right now.",
-};
-
-/**
- * Google sign-in is a full-page redirect through the API: no third-party
- * script, no popup, no client id in the browser. The API owns the OAuth
- * client, exchanges the code server-side and sets the session cookie.
- */
-function GoogleButton({ role, mode }: { role: "talent" | "client"; mode: "sign-in" | "sign-up" }) {
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .config()
-      .then((config) => {
-        if (alive) setEnabled(config.google_enabled);
-      })
-      .catch(() => {
-        /* leave the button hidden: the API decides what is available */
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (!enabled) return null;
-
-  return (
-    <>
-      <div className="sckoll-auth-divider">
-        <span>or continue with</span>
-      </div>
-      <a className="sckoll-google-link" href={googleSignInUrl(mode, role)}>
-        <svg className="sckoll-google-link-mark" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
-          <path
-            fill="#4285F4"
-            d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
-          />
-          <path
-            fill="#34A853"
-            d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z"
-          />
-          <path
-            fill="#EA4335"
-            d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
-          />
-        </svg>
-        Continue with Google
-      </a>
-    </>
-  );
-}
-
-function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const isSignUp = mode === "sign-up";
-  const router = useRouter();
-  const params = useSearchParams();
-  const session = useSession();
-  const [role, setRole] = useState<"talent" | "client">(
-    params.get("role") === "client" ? "client" : "talent",
-  );
-  // The API bounces a failed Google flow back here with ?error=<code>. It is
-  // derived during render, so it shows immediately and needs no effect.
-  const callbackError = GOOGLE_ERROR_COPY[params.get("error") ?? ""] ?? null;
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const shownError = error ?? callbackError;
-
-  async function onSubmit(form: FormData) {
-    setError(null);
-    setBusy(true);
-    try {
-      const email = String(form.get("email") ?? "");
-      const password = String(form.get("password") ?? "");
-      if (isSignUp) {
-        const name = String(form.get("name") ?? "");
-        await api.signup({ email, name, password, role });
-        // The session now exists: tell the app, so the nav and the routing
-        // hint know the visitor is a member from here on.
-        session.refresh();
-        router.push("/profile/setup");
-      } else {
-        await api.login({ email, password });
-        session.refresh();
-        router.push("/profile");
-      }
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="sckoll-auth-card">
-      <div className="sckoll-auth-card-heading">
-        <p className="sckoll-kicker">{isSignUp ? "Create account" : "Sign in"}</p>
-        <h2>{isSignUp ? "Join Sckoll" : "Welcome back"}</h2>
-        <p>
-          {isSignUp
-            ? "Choose how you want to use the marketplace."
-            : "Sign in to your opportunity and work workspace."}
-        </p>
-      </div>
-      {isSignUp && (
-        <div className="sckoll-role-switch" role="tablist" aria-label="Account type">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={role === "talent"}
-            className={role === "talent" ? "active" : ""}
-            onClick={() => setRole("talent")}
-          >
-            I want to find work
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={role === "client"}
-            className={role === "client" ? "active" : ""}
-            onClick={() => setRole("client")}
-          >
-            I want to hire
-          </button>
-        </div>
-      )}
-      {shownError && <p className="sckoll-auth-error">{shownError}</p>}
-      <form
-        className="sckoll-auth-form"
-        action={(form) => {
-          void onSubmit(form);
-        }}
-      >
-        <label>
-          Email address
-          <input required type="email" name="email" placeholder="you@example.com" autoComplete="email" />
-        </label>
-        {isSignUp && (
-          <label>
-            Full name
-            <input required type="text" name="name" placeholder="Your name" autoComplete="name" />
-          </label>
-        )}
-        <label>
-          Password
-          <input
-            required
-            minLength={8}
-            type="password"
-            name="password"
-            placeholder="At least 8 characters"
-            autoComplete={isSignUp ? "new-password" : "current-password"}
-          />
-        </label>
-        {isSignUp && (
-          <label className="sckoll-auth-check">
-            <input type="checkbox" required />{" "}
-            <span>
-              I agree to the Sckoll <Link href="/terms">terms</Link> and <Link href="/privacy">privacy notice</Link>.
-            </span>
-          </label>
-        )}
-        <button type="submit" className="sckoll-button sckoll-button-dark" disabled={busy}>
-          {busy ? "Working…" : isSignUp ? "Create account" : "Continue"}
-          <span>↗</span>
-        </button>
-      </form>
-      {!isSignUp && (
-        <p className="sckoll-auth-switch">
-          Forgot your password? <Link href="/reset-password">Reset it</Link>
-        </p>
-      )}
-      <GoogleButton role={role} mode={mode} />
-      <p className="sckoll-auth-switch">
-        {isSignUp ? "Already have an account?" : "New to Sckoll?"}{" "}
-        <Link href={isSignUp ? "/sign-in" : "/sign-up"}>{isSignUp ? "Sign in" : "Create an account"}</Link>
-      </p>
-      <p className="sckoll-auth-note">Signed in sessions stay on this device for 30 days.</p>
-    </div>
-  );
-}
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Play, Shield, Lock, Mail, User, Trophy, ArrowRight } from "lucide-react";
 
 export default function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const isSignUp = mode === "sign-up";
   const router = useRouter();
-  const session = useSession();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [favoriteTeam, setFavoriteTeam] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Someone who already had a session when they landed here has no business
-  // on the auth pages: send them to their workspace instead of a form they
-  // cannot use. A visitor who signs in with the form below is not bounced —
-  // `settled` stays "visitor" for them.
-  const gate = session.settled;
+  const isSignUp = mode === "sign-up";
 
-  useEffect(() => {
-    if (gate === "member") router.replace(SIGNED_IN_HOME);
-  }, [gate, router]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  if (!gate) {
-    return (
-      <main className="sckoll-auth-page">
-        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Checking your session…</p>
-      </main>
-    );
-  }
+    try {
+      const endpoint = isSignUp ? "/v1/auth/signup" : "/v1/auth/signin";
+      const payload = isSignUp
+        ? { email, name, password, favoriteTeamId: favoriteTeam || undefined }
+        : { email, password };
 
-  if (gate === "member") {
-    return (
-      <main className="sckoll-auth-page">
-        <p style={{ textAlign: "center", color: "#aeb4bc" }}>Taking you to your workspace…</p>
-      </main>
-    );
-  }
+      const res = await fetch(`http://localhost:8110${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Authentication failed");
+      }
+
+      // Store nickname
+      if (data.user?.name) {
+        localStorage.setItem("sckoll_fan_nickname", data.user.name);
+      }
+
+      router.push("/");
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="sckoll-auth-page">
-      <div className="sckoll-auth-brand">
-        <Link href="/">
-          <Mark small />
-          <span className="font-wordmark uppercase tracking-[.28em]">SCKOLL</span>
-        </Link>
-      </div>
-      <section className="sckoll-auth-layout">
-        <div className="sckoll-auth-message">
-          <p className="sckoll-kicker">{isSignUp ? "Start with the work" : "Welcome back"}</p>
-          <h1>{isSignUp ? "Build your next move." : "Keep the work moving."}</h1>
-          <p>
+    <div className="min-h-screen bg-[#070a13] text-zinc-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-[#0e1628] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        {/* Brand */}
+        <div className="text-center space-y-2">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+            </div>
+            <span className="text-2xl font-black text-white tracking-wider">SCKOLL</span>
+          </Link>
+          <h2 className="text-lg font-bold text-white pt-2">
+            {isSignUp ? "Create Your Fan Account" : "Welcome Back"}
+          </h2>
+          <p className="text-xs text-zinc-400">
             {isSignUp
-              ? "Create one profile for discovering work, finding talent, and turning the right signal into an outcome."
-              : "Return to your opportunity feed, proposals, shortlists, and active work."}
+              ? "Follow your favorite teams, unlock 4K streams and chat live."
+              : "Sign in to access your customized match alerts and feeds."}
           </p>
-          <div className="sckoll-auth-points">
-            <span>✓ Context-aware matching</span>
-            <span>✓ Human-approved actions</span>
-            <span>✓ Secure work trails</span>
-          </div>
         </div>
-        <Suspense>
-          <AuthForm mode={mode} />
-        </Suspense>
-      </section>
-    </main>
+
+        {error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 text-center font-medium">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isSignUp && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Fan Nickname</label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. GoonerFan_99"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-[#141d33] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="email"
+                required
+                placeholder="fan@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#141d33] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#141d33] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {isSignUp && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">Favorite Team (Optional)</label>
+              <div className="relative">
+                <Trophy className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="e.g. Arsenal, Real Madrid, Lakers"
+                  value={favoriteTeam}
+                  onChange={(e) => setFavoriteTeam(e.target.value)}
+                  className="w-full bg-[#141d33] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                <span>{isSignUp ? "Sign Up" : "Sign In"}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="text-center pt-2 text-xs text-zinc-400">
+          {isSignUp ? (
+            <p>
+              Already have an account?{" "}
+              <Link href="/sign-in" className="text-emerald-400 font-bold hover:underline">
+                Sign In
+              </Link>
+            </p>
+          ) : (
+            <p>
+              Don&apos;t have an account?{" "}
+              <Link href="/sign-up" className="text-emerald-400 font-bold hover:underline">
+                Sign Up
+              </Link>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -76,6 +76,8 @@ export function publicUser(user: User): {
   name: string | null;
   role: string;
   emailVerified: boolean;
+  favoriteTeamId?: string | null;
+  avatarUrl?: string | null;
 } {
   return {
     id: user.id,
@@ -83,6 +85,8 @@ export function publicUser(user: User): {
     name: user.name,
     role: user.role,
     emailVerified: user.emailVerified,
+    favoriteTeamId: user.favoriteTeamId,
+    avatarUrl: user.avatarUrl,
   };
 }
 

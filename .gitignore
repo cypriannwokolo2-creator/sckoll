@@ -47,6 +47,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# legacy archives
+/legacy
+/backend/legacy
+
 # playwright
 /test-results/
 /playwright-report/

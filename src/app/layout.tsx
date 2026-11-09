@@ -1,48 +1,37 @@
 import type { Metadata } from "next";
-import { Maven_Pro, Julius_Sans_One } from "next/font/google";
 import "./globals.css";
-import "../../sentry.client.config"; // client error tracking (no-op without NEXT_PUBLIC_SENTRY_DSN)
-import { SessionProvider } from "@/lib/session";
-
-const maven = Maven_Pro({
-  variable: "--font-maven",
-  subsets: ["latin"],
-});
-
-const julius = Julius_Sans_One({
-  variable: "--font-julius",
-  weight: "400",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sckoll.com"),
-  title: "Sckoll — Find the right work. Find the right people.",
+  title: "Sckoll — Live Sports & Match Streaming | Ultra HD",
   description:
-    "Sckoll helps freelancers, job seekers, founders, agencies, and lean teams find relevant work or reliable talent without endless scrolling, form-filling, or recruiter overhead.",
+    "Stream live football, Premier League, UEFA Champions League, NBA, UFC and motorsport matches with 0% lag, real-time tactical lineups, live stats, and fan chat.",
   keywords: [
-    "freelance platform",
-    "job search automation",
-    "talent sourcing",
-    "AI proposals",
-    "personalized outreach",
-    "candidate matching",
-    "get paid",
+    "match streaming",
+    "live sports stream",
+    "football streams",
+    "premier league live stream",
+    "champions league stream",
+    "nba live stream",
+    "ufc live stream",
+    "free live match",
+    "live score and commentary",
   ],
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Sckoll — Find the right work. Find the right people.",
+    title: "Sckoll — Live Sports & Match Streaming | Ultra HD",
     description:
-      "Find relevant opportunities, send better pitches, or source reliable talent without the manual grind.",
+      "Stream live football, Premier League, UEFA Champions League, NBA, UFC and motorsport matches with 0% lag and real-time stats.",
     url: "https://www.sckoll.com",
     siteName: "Sckoll",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sckoll — Find the right work. Find the right people.",
-    description: "Find relevant opportunities, send better pitches, or source reliable talent without the manual grind.",
+    title: "Sckoll — Live Sports & Match Streaming",
+    description:
+      "Watch live sports matches with zero lag, multi-server 4K streams, and interactive live fan chat.",
   },
 };
 
@@ -52,9 +41,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${maven.variable} ${julius.variable} scroll-smooth`}>
-      <body className="min-h-screen font-sans antialiased">
-        <SessionProvider>{children}</SessionProvider>
+    <html lang="en" className="dark scroll-smooth">
+      <body className="min-h-screen bg-[#070a13] text-zinc-100 font-sans antialiased">
+        {children}
       </body>
     </html>
   );
