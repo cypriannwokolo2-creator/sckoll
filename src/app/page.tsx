@@ -1,12 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MatchCard } from "@/components/MatchCard";
 import { LiveTicker } from "@/components/LiveTicker";
+import { SofaLeftNav } from "@/components/SofaLeftNav";
+import { SofaDateRibbon } from "@/components/SofaDateRibbon";
+import { SofaLeagueSection } from "@/components/SofaLeagueSection";
+import { SofaMatchCenter } from "@/components/SofaMatchCenter";
 import {
   type MatchSummary,
   type HighlightItem,
@@ -26,6 +30,8 @@ import {
   X,
   Radio,
   Tv,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 
 function HomePageContent() {
@@ -39,6 +45,10 @@ function HomePageContent() {
   const [activeSport, setActiveSport] = useState(initialSport || "all");
   const [activeStatus, setActiveStatus] = useState<"all" | "live" | "upcoming" | "finished">("all");
   const [selectedLeague, setSelectedLeague] = useState(initialLeague);
+  const [selectedMatch, setSelectedMatch] = useState<MatchSummary | null>(null);
+  const [viewMode, setViewMode] = useState<"sofa-list" | "cards">("sofa-list");
+  const [favorites, setFavorites] = useState<Set<string>>(new Set(["ars-mci-live", "rma-bar-live"]));
+  const [filterFavorites, setFilterFavorites] = useState(false);
   const [loading, setLoading] = useState(true);
   const [playingHighlight, setPlayingHighlight] = useState<HighlightItem | null>(null);
 
@@ -62,6 +72,20 @@ function HomePageContent() {
           setMatches(matchList);
           setHighlights(highlightList);
           setLoading(false);
+
+          // Select first featured/live match initially if none selected
+          setSelectedMatch((current) => {
+            if (current) {
+              const updated = matchList.find((m) => m.id === current.id);
+              if (updated) return updated;
+            }
+            return (
+              matchList.find((m) => m.status === "live") ||
+              matchList.find((m) => m.isFeatured) ||
+              matchList[0] ||
+              null
+            );
+          });
         }
       } catch {
         if (mounted) setLoading(false);
@@ -78,40 +102,80 @@ function HomePageContent() {
     };
   }, [activeSport, activeStatus, selectedLeague, initialQ]);
 
+  const toggleFavorite = (matchId: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
+  };
+
   const featuredMatch =
     matches.find((m) => m.isFeatured && m.status === "live") ||
     matches.find((m) => m.status === "live") ||
     matches[0];
+
   const liveCount = matches.filter((m) => m.status === "live").length;
   const upcomingCount = matches.filter((m) => m.status === "upcoming").length;
   const finishedCount = matches.filter((m) => m.status === "finished").length;
 
-  const topLeagues = [
-    { id: "", label: "All Leagues" },
-    { id: "premier-league", label: "Premier League" },
-    { id: "champions-league", label: "Champions League" },
-    { id: "la-liga", label: "La Liga" },
-    { id: "serie-a", label: "Serie A" },
-    { id: "bundesliga", label: "Bundesliga" },
-    { id: "nba", label: "NBA" },
-  ];
+  // Filter matches based on favorite toggle
+  const displayedMatches = useMemo(() => {
+    if (!filterFavorites) return matches;
+    return matches.filter((m) => favorites.has(m.id));
+  }, [matches, filterFavorites, favorites]);
+
+  // Group matches by League (SofaScore / LiveScore style)
+  const leagueGroups = useMemo(() => {
+    const groups: {
+      leagueId: string;
+      leagueName: string;
+      leagueCountry: string | null;
+      round: string | null;
+      matches: MatchSummary[];
+    }[] = [];
+
+    const map = new Map<string, (typeof groups)[0]>();
+
+    for (const m of displayedMatches) {
+      const key = m.leagueId || m.leagueName;
+      if (!map.has(key)) {
+        const entry = {
+          leagueId: m.leagueId,
+          leagueName: m.leagueName,
+          leagueCountry: m.leagueCountry,
+          round: m.round,
+          matches: [],
+        };
+        map.set(key, entry);
+        groups.push(entry);
+      }
+      map.get(key)!.matches.push(m);
+    }
+
+    return groups;
+  }, [displayedMatches]);
 
   return (
     <div className="min-h-screen bg-[#070a13] text-zinc-100 flex flex-col selection:bg-emerald-500 selection:text-black">
       <Navbar activeSport={activeSport} onSelectSport={(s) => setActiveSport(s)} />
       <LiveTicker />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-10">
-        {/* HERO MARQUEE: Featured Live Match Banner */}
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-6">
+        {/* HERO MARQUEE: Featured Live Match Broadcast Banner */}
         {featuredMatch && (
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#10192e] via-[#0b1120] to-[#070a13] p-6 sm:p-10 shadow-2xl group">
+          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#10192e] via-[#0b1120] to-[#070a13] p-5 sm:p-8 shadow-2xl group">
             {/* Ambient background glows */}
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700" />
             <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
               {/* Left Column: Match Details */}
-              <div className="space-y-4 max-w-2xl text-center lg:text-left">
+              <div className="space-y-3.5 max-w-2xl text-center lg:text-left">
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
                   {featuredMatch.status === "live" ? (
                     <span className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs rounded-full uppercase tracking-wider shadow-lg shadow-red-600/40">
@@ -130,11 +194,11 @@ function HomePageContent() {
 
                   <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
                     <Users className="w-3.5 h-3.5 text-red-400 animate-pulse" />
-                    <span>{(featuredMatch.viewersCount || 74000).toLocaleString()} watching live</span>
+                    <span>{(featuredMatch.viewersCount || 78500).toLocaleString()} watching live</span>
                   </span>
                 </div>
 
-                <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 py-2">
+                <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-6 py-1">
                   {/* Home Team */}
                   <div className="text-center sm:text-right">
                     <h2 className="text-xl sm:text-3xl font-black text-white">{featuredMatch.homeTeamName}</h2>
@@ -142,8 +206,8 @@ function HomePageContent() {
                   </div>
 
                   {/* Score */}
-                  <div className="px-5 py-2.5 bg-black/60 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner">
-                    <span className="text-3xl sm:text-5xl font-black font-mono text-emerald-400 tracking-wider">
+                  <div className="px-4 sm:px-5 py-2 bg-black/60 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner">
+                    <span className="text-2xl sm:text-5xl font-black font-mono text-emerald-400 tracking-wider">
                       {featuredMatch.status === "live" || featuredMatch.status === "finished"
                         ? `${featuredMatch.homeScore} - ${featuredMatch.awayScore}`
                         : "VS"}
@@ -157,7 +221,7 @@ function HomePageContent() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-zinc-400 pt-1 font-medium">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-zinc-400 font-medium">
                   <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <span>Ultra HD 4K 60fps</span>
@@ -170,10 +234,10 @@ function HomePageContent() {
               </div>
 
               {/* Right Column: CTA */}
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 w-full sm:w-auto">
                 <Link
                   href={`/watch/${featuredMatch.id}`}
-                  className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-black text-base rounded-2xl transition-all shadow-xl shadow-emerald-500/25 hover:scale-102"
+                  className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-black text-sm sm:text-base rounded-2xl transition-all shadow-xl shadow-emerald-500/25 hover:scale-102"
                 >
                   <Play className="w-5 h-5 fill-black" />
                   <span>Watch Live Stream Now</span>
@@ -181,144 +245,150 @@ function HomePageContent() {
 
                 <Link
                   href={`/watch/${featuredMatch.id}`}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white font-semibold text-sm rounded-2xl border border-white/10 transition-all text-center"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white font-semibold text-xs rounded-xl border border-white/10 transition-all text-center"
                 >
-                  <span>Tactical Board & Live Chat</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Attack Momentum & Live Chat</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
           </div>
         )}
 
-        {/* CONTROLS: Status Tabs & League Shortcuts */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-            {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-[#0f172a] rounded-xl border border-white/10 text-xs font-bold">
-              <button
-                onClick={() => setActiveStatus("all")}
-                className={`px-3.5 py-2 rounded-lg transition-all ${
-                  activeStatus === "all"
-                    ? "bg-emerald-500 text-black shadow-md font-black"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                All Matches ({matches.length})
-              </button>
+        {/* 3-COLUMN SOFASCORE & LIVESCORE DESKTOP LAYOUT */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* 1. LEFT COLUMN: SofaScore Pinned Leagues & Countries */}
+          <SofaLeftNav
+            selectedLeague={selectedLeague}
+            onSelectLeague={(id) => {
+              setSelectedLeague(id);
+              setFilterFavorites(false);
+            }}
+            filterFavorites={filterFavorites}
+            onToggleFilterFavorites={() => setFilterFavorites(!filterFavorites)}
+            favoriteCount={favorites.size}
+            liveMatchCount={liveCount}
+          />
 
-              <button
-                onClick={() => setActiveStatus("live")}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all ${
-                  activeStatus === "live"
-                    ? "bg-red-600 text-white shadow-md shadow-red-600/40 font-black"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                <span>Live Now ({liveCount})</span>
-              </button>
+          {/* 2. CENTER COLUMN: SofaScore Date Ribbon, Fixture Boards */}
+          <div className="flex-1 w-full min-w-0 space-y-4">
+            {/* SofaScore Date Ribbon & Status Filter */}
+            <SofaDateRibbon
+              activeStatus={activeStatus}
+              onSelectStatus={(s) => setActiveStatus(s)}
+              liveCount={liveCount}
+              allCount={matches.length}
+              upcomingCount={upcomingCount}
+              finishedCount={finishedCount}
+            />
 
-              <button
-                onClick={() => setActiveStatus("upcoming")}
-                className={`px-3.5 py-2 rounded-lg transition-all ${
-                  activeStatus === "upcoming"
-                    ? "bg-emerald-500 text-black shadow-md font-black"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Upcoming ({upcomingCount})
-              </button>
+            {/* View Mode Bar: SofaScore List vs Cards Grid */}
+            <div className="flex items-center justify-between px-1 text-xs">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-emerald-400" />
+                <span className="font-black text-white uppercase tracking-wider">
+                  {selectedLeague ? `Fixtures: ${selectedLeague}` : "Live Match Schedule"}
+                </span>
+                <span className="text-[11px] text-zinc-500">
+                  ({displayedMatches.length} matches)
+                </span>
+              </div>
 
-              <button
-                onClick={() => setActiveStatus("finished")}
-                className={`px-3.5 py-2 rounded-lg transition-all ${
-                  activeStatus === "finished"
-                    ? "bg-emerald-500 text-black shadow-md font-black"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Replays ({finishedCount})
-              </button>
-            </div>
-
-            {/* Total live broadcast note */}
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>Multi-server zero buffering enabled</span>
-            </div>
-          </div>
-
-          {/* League Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-            <span className="text-xs text-zinc-500 font-semibold flex items-center gap-1 flex-shrink-0">
-              <Filter className="w-3.5 h-3.5" /> Filter League:
-            </span>
-            {topLeagues.map((lg) => {
-              const isSelected = selectedLeague === lg.id;
-              return (
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 bg-[#090f1d] p-1 rounded-xl border border-white/10">
                 <button
-                  key={lg.id}
-                  onClick={() => setSelectedLeague(lg.id)}
-                  className={`px-3.5 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    isSelected
-                      ? "bg-white/20 text-white border border-white/30 shadow-sm"
-                      : "bg-[#0e1628] text-zinc-400 hover:text-zinc-200 border border-white/5"
+                  onClick={() => setViewMode("sofa-list")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                    viewMode === "sofa-list"
+                      ? "bg-emerald-500 text-black shadow-sm font-black"
+                      : "text-zinc-400 hover:text-white"
                   }`}
+                  title="SofaScore & LiveScore table view"
                 >
-                  {lg.label}
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span>SofaScore Table</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* MATCH FEED GRID */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <Flame className="w-5 h-5 text-emerald-400" />
-              <span>Match Broadcast Schedule</span>
-            </h3>
-            <span className="text-xs text-zinc-400">
-              Auto-updating live every 8s
-            </span>
+                <button
+                  onClick={() => setViewMode("cards")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                    viewMode === "cards"
+                      ? "bg-emerald-500 text-black shadow-sm font-black"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                  title="Broadcast Cards Grid view"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Cards</span>
+                </button>
+              </div>
+            </div>
+
+            {/* MATCH FIXTURES FEED */}
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-28 bg-[#0b101e] rounded-2xl animate-pulse border border-white/5" />
+                ))}
+              </div>
+            ) : displayedMatches.length === 0 ? (
+              <div className="text-center py-16 bg-[#0b101e] rounded-3xl border border-white/10 p-8">
+                <Trophy className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
+                <h4 className="text-base font-bold text-white mb-1">No matches found</h4>
+                <p className="text-xs text-zinc-400 mb-4">
+                  {filterFavorites
+                    ? "You haven't starred any favorite matches yet. Click the star icon on any match."
+                    : "Try clearing filters to see all live matches."}
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveSport("all");
+                    setSelectedLeague("");
+                    setActiveStatus("all");
+                    setFilterFavorites(false);
+                  }}
+                  className="px-5 py-2.5 bg-emerald-500 text-black text-xs font-black rounded-xl hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            ) : viewMode === "sofa-list" ? (
+              /* SOFASCORE & LIVESCORE LEAGUE GROUP ACCORDIONS */
+              <div className="space-y-4">
+                {leagueGroups.map((group) => (
+                  <SofaLeagueSection
+                    key={group.leagueId || group.leagueName}
+                    leagueId={group.leagueId}
+                    leagueName={group.leagueName}
+                    leagueCountry={group.leagueCountry}
+                    round={group.round}
+                    matches={group.matches}
+                    selectedMatchId={selectedMatch?.id}
+                    onSelectMatch={(m) => setSelectedMatch(m)}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            ) : (
+              /* BROADCAST CARDS GRID */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {displayedMatches.map((m) => (
+                  <MatchCard key={m.id} match={m} />
+                ))}
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-44 bg-[#0e1628] rounded-2xl animate-pulse border border-white/5" />
-              ))}
-            </div>
-          ) : matches.length === 0 ? (
-            <div className="text-center py-16 bg-[#0e1628] rounded-3xl border border-white/10 p-8">
-              <Trophy className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-              <h4 className="text-base font-bold text-white mb-1">No matches found for this filter</h4>
-              <p className="text-xs text-zinc-400 mb-4">Try clearing the sport or league filter to see all live matches.</p>
-              <button
-                onClick={() => {
-                  setActiveSport("all");
-                  setSelectedLeague("");
-                  setActiveStatus("all");
-                }}
-                className="px-5 py-2.5 bg-emerald-500 text-black text-xs font-black rounded-xl hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
-              >
-                Reset All Filters
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {matches.map((m) => (
-                <MatchCard key={m.id} match={m} />
-              ))}
-            </div>
-          )}
+          {/* 3. RIGHT COLUMN: SofaScore Match Center & Live Mini-Player */}
+          <div className="w-full lg:w-80 xl:w-96 flex-shrink-0">
+            <SofaMatchCenter match={selectedMatch} />
+          </div>
         </div>
 
         {/* TRENDING HIGHLIGHTS & GOALS SECTION */}
         {highlights.length > 0 && (
-          <div className="pt-6 border-t border-white/10">
+          <div className="pt-8 border-t border-white/10">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
@@ -361,12 +431,15 @@ function HomePageContent() {
                   </div>
 
                   <div className="p-4 space-y-2">
-                    <h4 className="font-bold text-sm text-zinc-200 group-hover:text-white line-clamp-2">
+                    <h4 className="font-bold text-sm text-zinc-100 group-hover:text-purple-300 transition-colors line-clamp-2">
                       {h.title}
                     </h4>
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
-                      <span>{(h.views || 180000).toLocaleString()} views</span>
-                      <span className="text-emerald-400 font-bold">1080p 60fps</span>
+                    <div className="flex items-center justify-between text-xs text-zinc-500 pt-1 border-t border-white/5">
+                      <span>{h.views.toLocaleString()} views</span>
+                      <span className="text-purple-400 font-bold group-hover:underline flex items-center gap-1">
+                        <span>Play Video</span>
+                        <Play className="w-3 h-3 fill-purple-400" />
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -375,147 +448,43 @@ function HomePageContent() {
           </div>
         )}
 
-        {/* Video Player Modal for Highlights */}
+        {/* Video Highlight Playback Modal */}
         {playingHighlight && (
-          <div
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
-            onClick={() => setPlayingHighlight(null)}
-          >
-            <div
-              className="relative w-full max-w-4xl bg-[#090f1e] border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 flex items-center justify-between border-b border-white/10">
-                <div className="flex items-center gap-2 truncate">
-                  <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded uppercase">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">
+            <div className="relative w-full max-w-4xl bg-[#0e1628] rounded-3xl border border-white/20 overflow-hidden shadow-2xl space-y-4">
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-purple-600 text-white text-xs font-black rounded uppercase">
                     {playingHighlight.competition}
                   </span>
-                  <h3 className="font-bold text-sm text-white truncate">{playingHighlight.title}</h3>
+                  <h3 className="font-bold text-sm text-white truncate max-w-md">
+                    {playingHighlight.title}
+                  </h3>
                 </div>
                 <button
                   onClick={() => setPlayingHighlight(null)}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                  className="p-1.5 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="aspect-video w-full bg-black">
+              <div className="relative aspect-video w-full bg-black">
                 <video
                   src={playingHighlight.videoUrl}
                   controls
                   autoPlay
-                  playsInline
                   className="w-full h-full object-contain"
                 />
+              </div>
+
+              <div className="p-4 pt-0 flex items-center justify-between text-xs text-zinc-400">
+                <span>Duration: {playingHighlight.duration} • {playingHighlight.views.toLocaleString()} plays</span>
+                <span className="text-emerald-400 font-bold">1080p 60fps Replay</span>
               </div>
             </div>
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
-  );
-}
-
-function HomeLoadingSkeleton() {
-  return (
-    <div className="min-h-screen bg-[#070a13] text-zinc-100 flex flex-col selection:bg-emerald-500 selection:text-black">
-      <Navbar />
-      <LiveTicker />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-10">
-        {/* HERO MARQUEE: Featured Live Match Preview Shell */}
-        <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#10192e] via-[#0b1120] to-[#070a13] p-6 sm:p-10 shadow-2xl">
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl text-center lg:text-left">
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white font-black text-xs rounded-full uppercase tracking-wider shadow-lg shadow-red-600/40">
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  LIVE NOW
-                </span>
-                <span className="px-3 py-1 bg-white/10 text-zinc-300 text-xs font-semibold rounded-full border border-white/5">
-                  Premier League
-                </span>
-                <span className="flex items-center gap-1 text-xs text-zinc-400">
-                  <Users className="w-3.5 h-3.5 text-red-400" />
-                  <span>84,200 watching</span>
-                </span>
-              </div>
-
-              <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 py-2">
-                <div className="text-center sm:text-right">
-                  <h2 className="text-xl sm:text-3xl font-black text-white">Arsenal</h2>
-                  <span className="text-xs text-zinc-400 font-medium">ARS • Home</span>
-                </div>
-                <div className="px-5 py-2.5 bg-black/60 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner">
-                  <span className="text-3xl sm:text-5xl font-black font-mono text-emerald-400 tracking-wider">2 - 1</span>
-                </div>
-                <div className="text-center sm:text-left">
-                  <h2 className="text-xl sm:text-3xl font-black text-white">Manchester City</h2>
-                  <span className="text-xs text-zinc-400 font-medium">MCI • Away</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-zinc-400 pt-1 font-medium">
-                <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Ultra HD 4K 60fps</span>
-                </span>
-                <span>•</span>
-                <span>Emirates Stadium</span>
-                <span>•</span>
-                <span>English Commentary</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
-              <Link
-                href="/watch/ars-mci-live"
-                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-black text-base rounded-2xl transition-all shadow-xl shadow-emerald-500/25"
-              >
-                <Play className="w-5 h-5 fill-black" />
-                <span>Watch Live Stream Now</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* CONTROLS SKELETON */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div className="flex items-center gap-1.5 p-1 bg-[#0f172a] rounded-xl border border-white/10 text-xs font-bold">
-              <span className="px-3.5 py-2 rounded-lg bg-emerald-500 text-black shadow-md font-black">All Matches</span>
-              <span className="px-3.5 py-2 rounded-lg text-zinc-400">Live Now</span>
-              <span className="px-3.5 py-2 rounded-lg text-zinc-400">Upcoming</span>
-              <span className="px-3.5 py-2 rounded-lg text-zinc-400">Replays</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>Multi-server zero buffering enabled</span>
-            </div>
-          </div>
-        </div>
-
-        {/* MATCH FEED SKELETON */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <Flame className="w-5 h-5 text-emerald-400" />
-              <span>Match Broadcast Schedule</span>
-            </h3>
-            <span className="text-xs text-zinc-400">Auto-updating live every 8s</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-44 bg-[#0e1628] rounded-2xl animate-pulse border border-white/5" />
-            ))}
-          </div>
-        </div>
       </main>
 
       <Footer />
@@ -525,7 +494,13 @@ function HomeLoadingSkeleton() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<HomeLoadingSkeleton />}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070a13] text-zinc-100 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
       <HomePageContent />
     </Suspense>
   );

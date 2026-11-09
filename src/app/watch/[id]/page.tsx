@@ -8,6 +8,9 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { LiveChat } from "@/components/LiveChat";
 import { LiveTicker } from "@/components/LiveTicker";
 import { TacticalPitch } from "@/components/TacticalPitch";
+import { AttackMomentum } from "@/components/AttackMomentum";
+import { SofaMatchStats } from "@/components/SofaMatchStats";
+import { SofaH2H } from "@/components/SofaH2H";
 import {
   type MatchDetailResponse,
   fetchMatch,
@@ -27,6 +30,7 @@ import {
   Flame,
   Check,
   Award,
+  Star,
 } from "lucide-react";
 
 export default function WatchPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,7 +39,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
 
   const [data, setData] = useState<MatchDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"timeline" | "lineups" | "stats" | "h2h">("timeline");
+  const [activeTab, setActiveTab] = useState<"momentum" | "lineups" | "stats" | "timeline" | "h2h">("momentum");
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -158,7 +162,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
               isTheaterMode={isTheaterMode}
             />
 
-            {/* Match Scoreboard Strip */}
+            {/* SofaScore Match Scoreboard Strip */}
             <div className="bg-gradient-to-r from-[#0d1426] to-[#0a101f] border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
               <div className="flex items-center gap-4 sm:gap-6">
                 {/* Home */}
@@ -213,12 +217,46 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
               </div>
             </div>
 
-            {/* Interactive Match Center Tabs (Timeline, Lineups, Stats, H2H) */}
+            {/* SofaScore Interactive Match Center Tabs */}
             <div className="bg-[#0d1426] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-              <div className="flex border-b border-white/10 bg-[#080d1a] text-xs font-bold">
+              <div className="flex border-b border-white/10 bg-[#080d1a] text-xs font-bold overflow-x-auto scrollbar-none">
+                <button
+                  onClick={() => setActiveTab("momentum")}
+                  className={`flex-1 min-w-[120px] py-3 text-center transition-all border-b-2 flex items-center justify-center gap-1.5 ${
+                    activeTab === "momentum"
+                      ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
+                      : "border-transparent text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Attack Momentum</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("stats")}
+                  className={`flex-1 min-w-[100px] py-3 text-center transition-all border-b-2 ${
+                    activeTab === "stats"
+                      ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
+                      : "border-transparent text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Duel Statistics
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("lineups")}
+                  className={`flex-1 min-w-[110px] py-3 text-center transition-all border-b-2 ${
+                    activeTab === "lineups"
+                      ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
+                      : "border-transparent text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Tactical Board & Ratings
+                </button>
+
                 <button
                   onClick={() => setActiveTab("timeline")}
-                  className={`flex-1 py-3 text-center transition-all border-b-2 ${
+                  className={`flex-1 min-w-[100px] py-3 text-center transition-all border-b-2 ${
                     activeTab === "timeline"
                       ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
                       : "border-transparent text-zinc-400 hover:text-white"
@@ -228,42 +266,61 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("lineups")}
-                  className={`flex-1 py-3 text-center transition-all border-b-2 ${
-                    activeTab === "lineups"
-                      ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
-                      : "border-transparent text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Tactical Board
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("stats")}
-                  className={`flex-1 py-3 text-center transition-all border-b-2 ${
-                    activeTab === "stats"
-                      ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
-                      : "border-transparent text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Match Statistics
-                </button>
-
-                <button
                   onClick={() => setActiveTab("h2h")}
-                  className={`flex-1 py-3 text-center transition-all border-b-2 ${
+                  className={`flex-1 min-w-[90px] py-3 text-center transition-all border-b-2 ${
                     activeTab === "h2h"
                       ? "border-emerald-500 text-emerald-400 bg-white/5 font-black"
                       : "border-transparent text-zinc-400 hover:text-white"
                   }`}
                 >
-                  H2H & Form
+                  H2H History
                 </button>
               </div>
 
               {/* Tab Content */}
               <div className="p-4 sm:p-6 text-sm">
-                {/* 1. TIMELINE & COMMENTARY TAB */}
+                {/* 1. SOFASCORE ATTACK MOMENTUM TAB */}
+                {activeTab === "momentum" && (
+                  <div className="space-y-4">
+                    <AttackMomentum
+                      homeTeamName={match.homeTeamName}
+                      awayTeamName={match.awayTeamName}
+                      homeTeamShort={match.homeTeamShort}
+                      awayTeamShort={match.awayTeamShort}
+                      currentMinute={match.minute}
+                      isLive={isLive}
+                      events={events}
+                      momentumData={data.momentum}
+                    />
+                  </div>
+                )}
+
+                {/* 2. DUEL STATISTICS (SofaScore comparison bars) */}
+                {activeTab === "stats" && (
+                  <SofaMatchStats
+                    stats={match.stats}
+                    homeTeamShort={match.homeTeamShort}
+                    awayTeamShort={match.awayTeamShort}
+                  />
+                )}
+
+                {/* 3. TACTICAL BOARD (Visual Pitch with SofaScore Ratings) */}
+                {activeTab === "lineups" && (
+                  <TacticalPitch
+                    homeTeam={{
+                      name: match.homeTeamName,
+                      shortName: match.homeTeamShort,
+                      lineup: lineups.home,
+                    }}
+                    awayTeam={{
+                      name: match.awayTeamName,
+                      shortName: match.awayTeamShort,
+                      lineup: lineups.away,
+                    }}
+                  />
+                )}
+
+                {/* 4. TIMELINE & COMMENTARY TAB */}
                 {activeTab === "timeline" && (
                   <div className="space-y-4">
                     {events.length === 0 ? (
@@ -297,116 +354,14 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
 
-                {/* 2. TACTICAL BOARD (Interactive Visual Pitch) */}
-                {activeTab === "lineups" && (
-                  <TacticalPitch
-                    homeTeam={{
-                      name: match.homeTeamName,
-                      shortName: match.homeTeamShort,
-                      lineup: lineups.home,
-                    }}
-                    awayTeam={{
-                      name: match.awayTeamName,
-                      shortName: match.awayTeamShort,
-                      lineup: lineups.away,
-                    }}
-                  />
-                )}
-
-                {/* 3. MATCH STATISTICS TAB */}
-                {activeTab === "stats" && (
-                  <div className="space-y-5 max-w-xl mx-auto">
-                    {/* Header Teams */}
-                    <div className="flex justify-between items-center text-xs font-black pb-2 border-b border-white/10">
-                      <span className="text-emerald-400 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                        <span>{match.homeTeamName}</span>
-                      </span>
-                      <span className="text-zinc-500 uppercase tracking-widest text-[10px]">Head to Head Stats</span>
-                      <span className="text-cyan-400 flex items-center gap-1.5">
-                        <span>{match.awayTeamName}</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-                      </span>
-                    </div>
-
-                    {/* Possession Meter */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-black">
-                        <span className="text-emerald-400">{match.stats?.possession?.[0] || 54}%</span>
-                        <span className="text-zinc-400 uppercase tracking-wider text-[11px] font-bold">Ball Possession</span>
-                        <span className="text-cyan-400">{match.stats?.possession?.[1] || 46}%</span>
-                      </div>
-                      <div className="h-2.5 w-full bg-zinc-800 rounded-full overflow-hidden flex shadow-inner">
-                        <div
-                          style={{ width: `${match.stats?.possession?.[0] || 54}%` }}
-                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400"
-                        />
-                        <div
-                          style={{ width: `${match.stats?.possession?.[1] || 46}%` }}
-                          className="h-full bg-gradient-to-l from-cyan-600 to-cyan-400"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Stats Rows */}
-                    {[
-                      { label: "Shots on Target", home: match.stats?.shotsOnTarget?.[0] ?? 6, away: match.stats?.shotsOnTarget?.[1] ?? 4 },
-                      { label: "Total Shots", home: match.stats?.shots?.[0] ?? 15, away: match.stats?.shots?.[1] ?? 9 },
-                      { label: "Corner Kicks", home: match.stats?.corners?.[0] ?? 7, away: match.stats?.corners?.[1] ?? 3 },
-                      { label: "Fouls Committed", home: match.stats?.fouls?.[0] ?? 8, away: match.stats?.fouls?.[1] ?? 12 },
-                      { label: "Yellow Cards", home: match.stats?.yellowCards?.[0] ?? 1, away: match.stats?.yellowCards?.[1] ?? 2 },
-                      { label: "Goalkeeper Saves", home: match.stats?.saves?.[0] ?? 3, away: match.stats?.saves?.[1] ?? 5 },
-                    ].map((s) => {
-                      const total = Math.max(s.home + s.away, 1);
-                      const homePercent = (s.home / total) * 100;
-                      return (
-                        <div key={s.label} className="space-y-1 py-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-black text-emerald-400 w-10 text-left">{s.home}</span>
-                            <span className="text-zinc-300 font-semibold text-center flex-1">{s.label}</span>
-                            <span className="font-black text-cyan-400 w-10 text-right">{s.away}</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-zinc-800/80 rounded-full overflow-hidden flex">
-                            <div style={{ width: `${homePercent}%` }} className="h-full bg-emerald-500" />
-                            <div style={{ width: `${100 - homePercent}%` }} className="h-full bg-cyan-500" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* 4. H2H & FORM TAB */}
+                {/* 5. H2H & HISTORY TAB */}
                 {activeTab === "h2h" && (
-                  <div className="space-y-4 max-w-lg mx-auto text-xs">
-                    <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3">
-                      <h4 className="font-bold text-white text-xs flex items-center gap-2">
-                        <Award className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Recent Form (Last 5 Fixtures)</span>
-                      </h4>
-                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                        <span className="font-bold text-zinc-200">{match.homeTeamName}</span>
-                        <div className="flex gap-1.5 font-bold text-[10px]">
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-zinc-600 text-white">D</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-red-600 text-white">L</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-zinc-200">{match.awayTeamName}</span>
-                        <div className="flex gap-1.5 font-bold text-[10px]">
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-zinc-600 text-white">D</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-red-600 text-white">L</span>
-                          <span className="w-5 h-5 rounded flex items-center justify-center bg-emerald-600 text-white">W</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <SofaH2H
+                    homeTeamName={match.homeTeamName}
+                    awayTeamName={match.awayTeamName}
+                    homeTeamShort={match.homeTeamShort}
+                    awayTeamShort={match.awayTeamShort}
+                  />
                 )}
               </div>
             </div>

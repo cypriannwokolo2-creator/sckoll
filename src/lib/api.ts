@@ -47,6 +47,11 @@ export interface MatchStats {
   yellowCards: [number, number];
   redCards: [number, number];
   saves: [number, number];
+  xg?: [number, number];
+  bigChances?: [number, number];
+  passes?: [number, number];
+  passAccuracy?: [number, number];
+  tacklesWon?: [number, number];
 }
 
 export interface StreamSource {
@@ -77,6 +82,34 @@ export interface PlayerInfo {
   name: string;
   pos: string;
   captain?: boolean;
+  rating?: number;
+  goals?: number;
+  assists?: number;
+  yellowCard?: boolean;
+  redCard?: boolean;
+}
+
+export interface AttackMomentumPoint {
+  minute: number;
+  value: number; // -100 to +100: positive is home pressure, negative is away pressure
+  event?: "goal" | "yellow_card" | "red_card";
+  team?: "home" | "away";
+}
+
+export interface H2HMatch {
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  competition: string;
+}
+
+export interface H2HData {
+  homeWins: number;
+  draws: number;
+  awayWins: number;
+  matches: H2HMatch[];
 }
 
 export interface LineupData {
@@ -103,6 +136,8 @@ export interface MatchDetailResponse {
     home: LineupData | null;
     away: LineupData | null;
   };
+  momentum?: AttackMomentumPoint[];
+  h2h?: H2HData;
 }
 
 export interface ChatMessage {

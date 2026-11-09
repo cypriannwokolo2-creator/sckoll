@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MatchCard } from "@/components/MatchCard";
 import { LiveTicker } from "@/components/LiveTicker";
+import { SofaLeagueSection } from "@/components/SofaLeagueSection";
 import { type MatchSummary, fetchMatches } from "@/lib/api";
-import { Calendar, Clock, Filter, Trophy, Globe, Sparkles } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Filter,
+  Trophy,
+  Globe,
+  Sparkles,
+  LayoutList,
+  LayoutGrid,
+} from "lucide-react";
 
 export default function SchedulePage() {
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [activeDate, setActiveDate] = useState<"today" | "tomorrow" | "all">("today");
   const [activeSport, setActiveSport] = useState("all");
+  const [viewMode, setViewMode] = useState<"sofa-list" | "cards">("sofa-list");
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [userTimezone, setUserTimezone] = useState("Local Time");
 
@@ -42,18 +54,60 @@ export default function SchedulePage() {
     };
   }, [activeSport]);
 
-  const filtered = matches.filter((m) => {
-    if (activeDate === "today") return m.status === "live" || m.status === "upcoming";
-    if (activeDate === "tomorrow") return m.status === "upcoming";
-    return true;
-  });
+  const toggleFavorite = (matchId: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) next.delete(matchId);
+      else next.add(matchId);
+      return next;
+    });
+  };
+
+  const filtered = useMemo(() => {
+    return matches.filter((m) => {
+      if (activeDate === "today") return m.status === "live" || m.status === "upcoming";
+      if (activeDate === "tomorrow") return m.status === "upcoming";
+      return true;
+    });
+  }, [matches, activeDate]);
+
+  // Group by League (SofaScore / LiveScore style)
+  const leagueGroups = useMemo(() => {
+    const groups: {
+      leagueId: string;
+      leagueName: string;
+      leagueCountry: string | null;
+      round: string | null;
+      matches: MatchSummary[];
+    }[] = [];
+
+    const map = new Map<string, (typeof groups)[0]>();
+
+    for (const m of filtered) {
+      const key = m.leagueId || m.leagueName;
+      if (!map.has(key)) {
+        const entry = {
+          leagueId: m.leagueId,
+          leagueName: m.leagueName,
+          leagueCountry: m.leagueCountry,
+          round: m.round,
+          matches: [],
+        };
+        map.set(key, entry);
+        groups.push(entry);
+      }
+      map.get(key)!.matches.push(m);
+    }
+
+    return groups;
+  }, [filtered]);
 
   return (
     <div className="min-h-screen bg-[#070a13] text-zinc-100 flex flex-col selection:bg-emerald-500 selection:text-black">
       <Navbar activeSport={activeSport} onSelectSport={(s) => setActiveSport(s)} />
       <LiveTicker />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div>
             <div className="flex items-center gap-2">
@@ -74,44 +128,76 @@ export default function SchedulePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 p-1 bg-[#0f172a] rounded-xl border border-white/10 text-xs font-bold shadow-lg">
-            <button
-              onClick={() => setActiveDate("today")}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeDate === "today"
-                  ? "bg-emerald-500 text-black shadow-md font-black"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setActiveDate("tomorrow")}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeDate === "tomorrow"
-                  ? "bg-emerald-500 text-black shadow-md font-black"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Tomorrow
-            </button>
-            <button
-              onClick={() => setActiveDate("all")}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeDate === "all"
-                  ? "bg-emerald-500 text-black shadow-md font-black"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              All Fixtures ({matches.length})
-            </button>
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-[#0f172a] p-1 rounded-xl border border-white/10 text-xs font-bold shadow-lg">
+              <button
+                onClick={() => setViewMode("sofa-list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === "sofa-list"
+                    ? "bg-emerald-500 text-black font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="SofaScore List"
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>SofaScore</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === "cards"
+                    ? "bg-emerald-500 text-black font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Cards Grid"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Cards</span>
+              </button>
+            </div>
+
+            {/* Date Tabs */}
+            <div className="flex items-center gap-1.5 p-1 bg-[#0f172a] rounded-xl border border-white/10 text-xs font-bold shadow-lg">
+              <button
+                onClick={() => setActiveDate("today")}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  activeDate === "today"
+                    ? "bg-emerald-500 text-black shadow-md font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setActiveDate("tomorrow")}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  activeDate === "tomorrow"
+                    ? "bg-emerald-500 text-black shadow-md font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Tomorrow
+              </button>
+              <button
+                onClick={() => setActiveDate("all")}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  activeDate === "all"
+                    ? "bg-emerald-500 text-black shadow-md font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                All Fixtures ({matches.length})
+              </button>
+            </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-44 bg-[#0e1628] rounded-2xl animate-pulse border border-white/5" />
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-[#0e1628] rounded-2xl animate-pulse border border-white/5" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -129,7 +215,24 @@ export default function SchedulePage() {
               View All Fixtures
             </button>
           </div>
+        ) : viewMode === "sofa-list" ? (
+          /* SOFASCORE LEAGUE GROUPED FIXTURES */
+          <div className="space-y-4">
+            {leagueGroups.map((group) => (
+              <SofaLeagueSection
+                key={group.leagueId || group.leagueName}
+                leagueId={group.leagueId}
+                leagueName={group.leagueName}
+                leagueCountry={group.leagueCountry}
+                round={group.round}
+                matches={group.matches}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))}
+          </div>
         ) : (
+          /* CARDS GRID */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((m) => (
               <MatchCard key={m.id} match={m} />
