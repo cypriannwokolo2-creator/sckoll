@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type MatchSummary, fetchMatches } from "@/lib/api";
+import { TeamLogo } from "./TeamLogo";
 import { ChevronRight, ChevronLeft, Flame, Radio } from "lucide-react";
 
 export function LiveTicker() {
@@ -72,7 +73,13 @@ export function LiveTicker() {
 
                 {/* Scoreboard */}
                 <div className="flex items-center gap-1.5 font-bold">
-                  <span className="truncate max-w-[70px] text-zinc-200 group-hover:text-white">
+                  <TeamLogo
+                    teamId={m.homeTeamId}
+                    name={m.homeTeamName}
+                    shortName={m.homeTeamShort}
+                    size="xs"
+                  />
+                  <span className="truncate max-w-[65px] text-zinc-200 group-hover:text-white">
                     {m.homeTeamShort}
                   </span>
                   <span
@@ -84,9 +91,15 @@ export function LiveTicker() {
                   >
                     {isLive || isFinished ? `${m.homeScore}-${m.awayScore}` : "vs"}
                   </span>
-                  <span className="truncate max-w-[70px] text-zinc-200 group-hover:text-white">
+                  <span className="truncate max-w-[65px] text-zinc-200 group-hover:text-white">
                     {m.awayTeamShort}
                   </span>
+                  <TeamLogo
+                    teamId={m.awayTeamId}
+                    name={m.awayTeamName}
+                    shortName={m.awayTeamShort}
+                    size="xs"
+                  />
                 </div>
 
                 {/* Status Indicator */}

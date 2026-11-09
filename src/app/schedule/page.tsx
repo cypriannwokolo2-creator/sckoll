@@ -71,7 +71,7 @@ export default function SchedulePage() {
     });
   }, [matches, activeDate]);
 
-  // Group by League (SofaScore / LiveScore style)
+  // Group by League competition
   const leagueGroups = useMemo(() => {
     const groups: {
       leagueId: string;
@@ -216,7 +216,7 @@ export default function SchedulePage() {
             </button>
           </div>
         ) : viewMode === "list" ? (
-          /* SOFASCORE LEAGUE GROUPED FIXTURES */
+          /* LEAGUE GROUPED FIXTURES */
           <div className="space-y-4">
             {leagueGroups.map((group) => (
               <SofaLeagueSection

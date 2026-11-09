@@ -1,6 +1,7 @@
 "use client";
 
 import { Star, Trophy, Globe, Flame } from "lucide-react";
+import { LeagueLogo } from "./LeagueLogo";
 
 interface SofaLeftNavProps {
   selectedLeague: string;
@@ -84,7 +85,7 @@ export function SofaLeftNav({
         </button>
       </div>
 
-      {/* SofaScore Pinned Top Leagues */}
+      {/* Pinned Top Leagues */}
       <div className="bg-[#0b101e] border border-white/10 rounded-2xl p-3 shadow-lg space-y-2">
         <div className="flex items-center justify-between px-1.5 pb-1">
           <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
@@ -108,7 +109,11 @@ export function SofaLeftNav({
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-sm flex-shrink-0">{lg.flag}</span>
+                  {lg.id ? (
+                    <LeagueLogo leagueId={lg.id} name={lg.name} country={lg.country} size="sm" />
+                  ) : (
+                    <span className="text-sm flex-shrink-0">{lg.flag}</span>
+                  )}
                   <span className="truncate">{lg.name}</span>
                 </div>
               </button>

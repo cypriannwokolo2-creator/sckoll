@@ -11,6 +11,8 @@ import { SofaLeftNav } from "@/components/SofaLeftNav";
 import { SofaDateRibbon } from "@/components/SofaDateRibbon";
 import { SofaLeagueSection } from "@/components/SofaLeagueSection";
 import { SofaMatchCenter } from "@/components/SofaMatchCenter";
+import { TeamLogo } from "@/components/TeamLogo";
+import { LeagueLogo } from "@/components/LeagueLogo";
 import {
   type MatchSummary,
   type HighlightItem,
@@ -129,7 +131,7 @@ function HomePageContent() {
     return matches.filter((m) => favorites.has(m.id));
   }, [matches, filterFavorites, favorites]);
 
-  // Group matches by League (SofaScore / LiveScore style)
+  // Group matches by League competition
   const leagueGroups = useMemo(() => {
     const groups: {
       leagueId: string;
@@ -188,8 +190,9 @@ function HomePageContent() {
                     </span>
                   )}
 
-                  <span className="px-3 py-1 bg-white/10 text-zinc-300 text-xs font-semibold rounded-full border border-white/5">
-                    {featuredMatch.leagueName}
+                  <span className="flex items-center gap-1.5 px-3 py-1 bg-white/10 text-zinc-300 text-xs font-semibold rounded-full border border-white/5">
+                    <LeagueLogo leagueId={featuredMatch.leagueId} name={featuredMatch.leagueName} size="sm" />
+                    <span>{featuredMatch.leagueName}</span>
                   </span>
 
                   <span className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
@@ -198,26 +201,55 @@ function HomePageContent() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-6 py-1">
+                <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-6 py-2">
                   {/* Home Team */}
-                  <div className="text-center sm:text-right">
-                    <h2 className="text-xl sm:text-3xl font-black text-white">{featuredMatch.homeTeamName}</h2>
-                    <span className="text-xs text-zinc-400 font-medium">{featuredMatch.homeTeamShort} • Home</span>
+                  <div className="flex items-center gap-3 text-center sm:text-right">
+                    <div className="hidden sm:block">
+                      <h2 className="text-xl sm:text-2xl font-black text-white">{featuredMatch.homeTeamName}</h2>
+                      <span className="text-xs text-zinc-400 font-medium">{featuredMatch.homeTeamShort} • Home</span>
+                    </div>
+                    <TeamLogo
+                      teamId={featuredMatch.homeTeamId}
+                      name={featuredMatch.homeTeamName}
+                      shortName={featuredMatch.homeTeamShort}
+                      size="xl"
+                      className="shadow-xl"
+                    />
+                    <div className="sm:hidden text-left">
+                      <h2 className="text-base font-black text-white">{featuredMatch.homeTeamShort}</h2>
+                    </div>
                   </div>
 
                   {/* Score */}
-                  <div className="px-4 sm:px-5 py-2 bg-black/60 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner">
-                    <span className="text-2xl sm:text-5xl font-black font-mono text-emerald-400 tracking-wider">
+                  <div className="px-4 sm:px-5 py-2 bg-black/60 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner flex flex-col items-center">
+                    <span className="text-2xl sm:text-4xl font-black font-mono text-emerald-400 tracking-wider">
                       {featuredMatch.status === "live" || featuredMatch.status === "finished"
                         ? `${featuredMatch.homeScore} - ${featuredMatch.awayScore}`
                         : "VS"}
                     </span>
+                    {featuredMatch.status === "live" && (
+                      <span className="text-[10px] text-zinc-400 font-mono font-bold mt-0.5">
+                        {featuredMatch.minute}&apos;
+                      </span>
+                    )}
                   </div>
 
                   {/* Away Team */}
-                  <div className="text-center sm:text-left">
-                    <h2 className="text-xl sm:text-3xl font-black text-white">{featuredMatch.awayTeamName}</h2>
-                    <span className="text-xs text-zinc-400 font-medium">{featuredMatch.awayTeamShort} • Away</span>
+                  <div className="flex items-center gap-3 text-center sm:text-left">
+                    <div className="sm:hidden text-right">
+                      <h2 className="text-base font-black text-white">{featuredMatch.awayTeamShort}</h2>
+                    </div>
+                    <TeamLogo
+                      teamId={featuredMatch.awayTeamId}
+                      name={featuredMatch.awayTeamName}
+                      shortName={featuredMatch.awayTeamShort}
+                      size="xl"
+                      className="shadow-xl"
+                    />
+                    <div className="hidden sm:block">
+                      <h2 className="text-xl sm:text-2xl font-black text-white">{featuredMatch.awayTeamName}</h2>
+                      <span className="text-xs text-zinc-400 font-medium">{featuredMatch.awayTeamShort} • Away</span>
+                    </div>
                   </div>
                 </div>
 
@@ -255,9 +287,9 @@ function HomePageContent() {
           </div>
         )}
 
-        {/* 3-COLUMN SOFASCORE & LIVESCORE DESKTOP LAYOUT */}
+        {/* 3-COLUMN DESKTOP SCORES & STREAMING LAYOUT */}
         <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* 1. LEFT COLUMN: SofaScore Pinned Leagues & Countries */}
+          {/* 1. LEFT COLUMN: Pinned Leagues & Countries */}
           <SofaLeftNav
             selectedLeague={selectedLeague}
             onSelectLeague={(id) => {
@@ -270,9 +302,9 @@ function HomePageContent() {
             liveMatchCount={liveCount}
           />
 
-          {/* 2. CENTER COLUMN: SofaScore Date Ribbon, Fixture Boards */}
+          {/* 2. CENTER COLUMN: Date Ribbon, Fixture Boards */}
           <div className="flex-1 w-full min-w-0 space-y-4">
-            {/* SofaScore Date Ribbon & Status Filter */}
+            {/* Date Ribbon & Status Filter */}
             <SofaDateRibbon
               activeStatus={activeStatus}
               onSelectStatus={(s) => setActiveStatus(s)}
@@ -282,7 +314,7 @@ function HomePageContent() {
               finishedCount={finishedCount}
             />
 
-            {/* View Mode Bar: SofaScore List vs Cards Grid */}
+            {/* View Mode Bar: List vs Cards Grid */}
             <div className="flex items-center justify-between px-1 text-xs">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-emerald-400" />
@@ -353,7 +385,7 @@ function HomePageContent() {
                 </button>
               </div>
             ) : viewMode === "list" ? (
-              /* SOFASCORE & LIVESCORE LEAGUE GROUP ACCORDIONS */
+              /* LEAGUE GROUP ACCORDIONS */
               <div className="space-y-4">
                 {leagueGroups.map((group) => (
                   <SofaLeagueSection
@@ -380,7 +412,7 @@ function HomePageContent() {
             )}
           </div>
 
-          {/* 3. RIGHT COLUMN: SofaScore Match Center & Live Mini-Player */}
+          {/* 3. RIGHT COLUMN: Live Match Center & Stats */}
           <div className="w-full lg:w-80 xl:w-96 flex-shrink-0">
             <SofaMatchCenter match={selectedMatch} />
           </div>

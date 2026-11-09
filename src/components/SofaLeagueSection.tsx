@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { MatchSummary } from "@/lib/api";
 import { SofaMatchRow } from "./SofaMatchRow";
+import { LeagueLogo } from "./LeagueLogo";
 import { ChevronDown, ChevronRight, Trophy } from "lucide-react";
 
 interface SofaLeagueSectionProps {
@@ -48,13 +49,13 @@ export function SofaLeagueSection({
 
   return (
     <div className="bg-[#0b101d] rounded-2xl border border-white/10 overflow-hidden shadow-lg transition-all">
-      {/* SofaScore League Banner Header */}
+      {/* League Banner Header */}
       <div
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center justify-between px-4 py-2.5 bg-[#0e1628] hover:bg-[#121c33] border-b border-white/5 cursor-pointer transition-colors select-none"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-base flex-shrink-0">{flag}</span>
+          <LeagueLogo leagueId={leagueId} name={leagueName} country={leagueCountry} size="sm" />
           <div className="flex items-center gap-2 truncate text-xs">
             <span className="text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
               {leagueCountry || "Global"}

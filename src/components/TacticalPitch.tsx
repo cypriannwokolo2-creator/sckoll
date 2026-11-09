@@ -275,7 +275,7 @@ function PlayerNode({
 }) {
   const shortName = player.name.split(" ").slice(-1)[0]; // Last name
 
-  // SofaScore rating color palette
+  // Tactical performance rating color palette
   const getRatingBadgeStyle = (r: number) => {
     if (r >= 8.0) return "bg-emerald-600 text-white font-black shadow-emerald-500/40";
     if (r >= 7.3) return "bg-lime-500 text-black font-black shadow-lime-500/30";
@@ -317,7 +317,7 @@ function PlayerNode({
           </span>
         )}
 
-        {/* SofaScore Rating Badge on Player */}
+        {/* Live Performance Rating Badge on Player */}
         <span
           className={`absolute -bottom-1.5 -right-2 px-1 py-0.2 rounded-md text-[9px] font-mono shadow-md ${ratingBadgeClass}`}
         >

@@ -10,6 +10,8 @@ import {
   fetchLeagues,
   fetchStandings,
 } from "@/lib/api";
+import { TeamLogo } from "@/components/TeamLogo";
+import { LeagueLogo } from "@/components/LeagueLogo";
 import { Trophy, Shield, Award, Sparkles } from "lucide-react";
 
 export default function StandingsPage() {
@@ -66,8 +68,8 @@ export default function StandingsPage() {
               </span>
               <span className="text-xs text-zinc-400">Season 2026/27</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 mt-1">
-              <Trophy className="w-7 h-7 text-amber-400" />
+            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3 mt-1">
+              <LeagueLogo leagueId={selectedLeague} name={currentLeagueObj?.name || ""} size="lg" />
               <span>{currentLeagueObj?.name || "Official League"} Standings</span>
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
@@ -98,13 +100,14 @@ export default function StandingsPage() {
             <button
               key={lg.id}
               onClick={() => setSelectedLeague(lg.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
                 selectedLeague === lg.id
                   ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/25 scale-[1.02]"
                   : "bg-[#0e1628] text-zinc-300 hover:text-white hover:bg-[#16223d] border border-white/5"
               }`}
             >
-              {lg.name}
+              <LeagueLogo leagueId={lg.id} name={lg.name} country={lg.country} size="sm" />
+              <span>{lg.name}</span>
             </button>
           ))}
         </div>
@@ -165,9 +168,12 @@ export default function StandingsPage() {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-zinc-100 flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-white/10 flex items-center justify-center text-[10px] font-black text-zinc-200 group-hover:border-emerald-500/30 transition-colors">
-                            {row.teamShort}
-                          </div>
+                          <TeamLogo
+                            teamId={row.teamId}
+                            name={row.teamName}
+                            shortName={row.teamShort}
+                            size="sm"
+                          />
                           <span className="group-hover:text-white transition-colors">{row.teamName}</span>
                         </td>
                         <td className="py-3.5 px-4 text-center text-zinc-400">{row.played}</td>

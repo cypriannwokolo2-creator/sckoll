@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type MatchSummary } from "@/lib/api";
+import { TeamLogo } from "./TeamLogo";
 import { Play, Users, Clock, ShieldCheck, Flame, Radio } from "lucide-react";
 
 export function MatchCard({ match }: { match: MatchSummary }) {
@@ -76,14 +77,18 @@ export function MatchCard({ match }: { match: MatchSummary }) {
           </div>
         </div>
 
-        {/* Teams & Scoreboard */}
+        {/* Teams & Scoreboard with Official Club Crests */}
         <div className="space-y-3 mb-5">
           {/* Home Team */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-xs text-zinc-100 shadow-md group-hover:border-emerald-500/30 transition-colors">
-                {match.homeTeamShort}
-              </div>
+              <TeamLogo
+                teamId={match.homeTeamId}
+                name={match.homeTeamName}
+                shortName={match.homeTeamShort}
+                logoUrl={match.homeTeamLogo}
+                size="md"
+              />
               <div className="flex flex-col">
                 <span className="font-bold text-sm sm:text-base text-zinc-100 group-hover:text-white transition-colors">
                   {match.homeTeamName}
@@ -103,9 +108,13 @@ export function MatchCard({ match }: { match: MatchSummary }) {
           {/* Away Team */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-xs text-zinc-100 shadow-md group-hover:border-cyan-500/30 transition-colors">
-                {match.awayTeamShort}
-              </div>
+              <TeamLogo
+                teamId={match.awayTeamId}
+                name={match.awayTeamName}
+                shortName={match.awayTeamShort}
+                logoUrl={match.awayTeamLogo}
+                size="md"
+              />
               <div className="flex flex-col">
                 <span className="font-bold text-sm sm:text-base text-zinc-100 group-hover:text-white transition-colors">
                   {match.awayTeamName}
@@ -142,16 +151,16 @@ export function MatchCard({ match }: { match: MatchSummary }) {
 
         <Link
           href={`/watch/${match.id}`}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+          className={`inline-flex items-center gap-1.5 px-4 py-2 font-black text-xs rounded-xl transition-all shadow-md ${
             isLive
-              ? "bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-lg shadow-emerald-500/25 group-hover:scale-102"
+              ? "bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-emerald-500/20"
               : isFinished
-              ? "bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white"
-              : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
+              ? "bg-white/10 hover:bg-white/15 text-white"
+              : "bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10"
           }`}
         >
           <Play className="w-3.5 h-3.5 fill-current" />
-          <span>{isLive ? "Watch Live" : isFinished ? "Watch Replay" : "Stream Feed"}</span>
+          <span>{isLive ? "Watch Live" : isFinished ? "Replay" : "Stream Preview"}</span>
         </Link>
       </div>
     </div>

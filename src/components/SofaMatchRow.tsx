@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type MatchSummary } from "@/lib/api";
+import { TeamLogo } from "./TeamLogo";
 import { Star, Play, Tv, Clock, ShieldCheck, Flame, Radio } from "lucide-react";
 
 interface SofaMatchRowProps {
@@ -76,9 +77,13 @@ export function SofaMatchRow({
         {/* Home Team */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-[9px] text-white flex-shrink-0">
-              {match.homeTeamShort.slice(0, 3)}
-            </div>
+            <TeamLogo
+              teamId={match.homeTeamId}
+              name={match.homeTeamName}
+              shortName={match.homeTeamShort}
+              logoUrl={match.homeTeamLogo}
+              size="xs"
+            />
             <span
               className={`text-xs sm:text-sm truncate transition-colors ${
                 homeWinning
@@ -111,9 +116,13 @@ export function SofaMatchRow({
         {/* Away Team */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-[9px] text-white flex-shrink-0">
-              {match.awayTeamShort.slice(0, 3)}
-            </div>
+            <TeamLogo
+              teamId={match.awayTeamId}
+              name={match.awayTeamName}
+              shortName={match.awayTeamShort}
+              logoUrl={match.awayTeamLogo}
+              size="xs"
+            />
             <span
               className={`text-xs sm:text-sm truncate transition-colors ${
                 awayWinning

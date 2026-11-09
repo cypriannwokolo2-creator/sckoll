@@ -11,6 +11,8 @@ import { TacticalPitch } from "@/components/TacticalPitch";
 import { AttackMomentum } from "@/components/AttackMomentum";
 import { SofaMatchStats } from "@/components/SofaMatchStats";
 import { SofaH2H } from "@/components/SofaH2H";
+import { TeamLogo } from "@/components/TeamLogo";
+import { LeagueLogo } from "@/components/LeagueLogo";
 import {
   type MatchDetailResponse,
   fetchMatch,
@@ -128,6 +130,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
 
             <div>
               <div className="flex items-center gap-2">
+                <LeagueLogo leagueId={match.leagueId} name={match.leagueName} size="sm" />
                 <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">
                   {match.leagueName}
                 </span>
@@ -160,16 +163,26 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
               isLive={isLive}
               onTheaterToggle={(t) => setIsTheaterMode(t)}
               isTheaterMode={isTheaterMode}
+              homeTeamId={match.homeTeamId}
+              awayTeamId={match.awayTeamId}
+              homeTeamName={match.homeTeamName}
+              awayTeamName={match.awayTeamName}
+              homeTeamShort={match.homeTeamShort}
+              awayTeamShort={match.awayTeamShort}
             />
 
-            {/* SofaScore Match Scoreboard Strip */}
+            {/* Live Match Scoreboard Strip */}
             <div className="bg-gradient-to-r from-[#0d1426] to-[#0a101f] border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
               <div className="flex items-center gap-4 sm:gap-6">
                 {/* Home */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-sm text-white shadow-md">
-                    {match.homeTeamShort}
-                  </div>
+                  <TeamLogo
+                    teamId={match.homeTeamId}
+                    name={match.homeTeamName}
+                    shortName={match.homeTeamShort}
+                    size="lg"
+                    className="shadow-md"
+                  />
                   <div>
                     <h3 className="font-bold text-sm sm:text-base text-white">{match.homeTeamName}</h3>
                     <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Home</span>
@@ -185,9 +198,13 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
 
                 {/* Away */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-sm text-white shadow-md">
-                    {match.awayTeamShort}
-                  </div>
+                  <TeamLogo
+                    teamId={match.awayTeamId}
+                    name={match.awayTeamName}
+                    shortName={match.awayTeamShort}
+                    size="lg"
+                    className="shadow-md"
+                  />
                   <div>
                     <h3 className="font-bold text-sm sm:text-base text-white">{match.awayTeamName}</h3>
                     <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Away</span>
@@ -217,7 +234,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
               </div>
             </div>
 
-            {/* SofaScore Interactive Match Center Tabs */}
+            {/* Interactive Match Center Tabs */}
             <div className="bg-[#0d1426] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
               <div className="flex border-b border-white/10 bg-[#080d1a] text-xs font-bold overflow-x-auto scrollbar-none">
                 <button
@@ -279,7 +296,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
 
               {/* Tab Content */}
               <div className="p-4 sm:p-6 text-sm">
-                {/* 1. SOFASCORE ATTACK MOMENTUM TAB */}
+                {/* 1. ATTACK MOMENTUM TAB */}
                 {activeTab === "momentum" && (
                   <div className="space-y-4">
                     <AttackMomentum
@@ -295,7 +312,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
 
-                {/* 2. DUEL STATISTICS (SofaScore comparison bars) */}
+                {/* 2. DUEL STATISTICS (Comparison bars) */}
                 {activeTab === "stats" && (
                   <SofaMatchStats
                     stats={match.stats}
@@ -304,7 +321,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                   />
                 )}
 
-                {/* 3. TACTICAL BOARD (Visual Pitch with SofaScore Ratings) */}
+                {/* 3. TACTICAL BOARD (Visual Pitch with Live Player Ratings) */}
                 {activeTab === "lineups" && (
                   <TacticalPitch
                     homeTeam={{

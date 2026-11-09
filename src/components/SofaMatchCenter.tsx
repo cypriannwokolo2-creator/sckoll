@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import type { MatchSummary, MatchDetailResponse } from "@/lib/api";
 import { fetchMatch } from "@/lib/api";
 import { AttackMomentum } from "./AttackMomentum";
+import { TeamLogo } from "./TeamLogo";
+import { LeagueLogo } from "./LeagueLogo";
 import {
   Play,
   Tv,
@@ -63,7 +65,7 @@ export function SofaMatchCenter({ match }: SofaMatchCenterProps) {
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <LeagueLogo leagueId={match.leagueId} name={match.leagueName} size="sm" />
           <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">
             {match.leagueName}
           </span>
@@ -83,13 +85,17 @@ export function SofaMatchCenter({ match }: SofaMatchCenterProps) {
         )}
       </div>
 
-      {/* SofaScore Match Scoreboard Header */}
+      {/* Live Match Scoreboard Header */}
       <div className="flex items-center justify-between gap-3 bg-[#080d19] p-3.5 rounded-xl border border-white/5">
         {/* Home Team */}
         <div className="flex-1 flex flex-col items-center text-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-xs text-white shadow-md mb-1.5">
-            {match.homeTeamShort}
-          </div>
+          <TeamLogo
+            teamId={match.homeTeamId}
+            name={match.homeTeamName}
+            shortName={match.homeTeamShort}
+            size="lg"
+            className="mb-1.5 shadow-md"
+          />
           <span className="text-xs font-bold text-white line-clamp-1">
             {match.homeTeamName}
           </span>
@@ -110,9 +116,13 @@ export function SofaMatchCenter({ match }: SofaMatchCenterProps) {
 
         {/* Away Team */}
         <div className="flex-1 flex flex-col items-center text-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 flex items-center justify-center font-black text-xs text-white shadow-md mb-1.5">
-            {match.awayTeamShort}
-          </div>
+          <TeamLogo
+            teamId={match.awayTeamId}
+            name={match.awayTeamName}
+            shortName={match.awayTeamShort}
+            size="lg"
+            className="mb-1.5 shadow-md"
+          />
           <span className="text-xs font-bold text-white line-clamp-1">
             {match.awayTeamName}
           </span>
@@ -130,7 +140,7 @@ export function SofaMatchCenter({ match }: SofaMatchCenterProps) {
         <ArrowRight className="w-3.5 h-3.5" />
       </Link>
 
-      {/* SofaScore Attack Momentum Graph */}
+      {/* Live Attack Momentum Graph */}
       <AttackMomentum
         homeTeamName={match.homeTeamName}
         awayTeamName={match.awayTeamName}

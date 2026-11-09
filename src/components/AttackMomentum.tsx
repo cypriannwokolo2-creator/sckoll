@@ -34,7 +34,7 @@ export function AttackMomentum({
   const points = useMemo(() => {
     if (momentumData && momentumData.length > 0) return momentumData;
 
-    // Generate authentic SofaScore-style momentum wave
+    // Generate dynamic live momentum wave
     const pts: AttackMomentumPoint[] = [];
     const maxMin = Math.min(Math.max(currentMinute, 1), 90);
 
@@ -81,7 +81,7 @@ export function AttackMomentum({
 
   return (
     <div className="bg-[#0b1120] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
-      {/* SofaScore Header */}
+      {/* Momentum Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-tr from-emerald-500 to-teal-400" />
@@ -105,7 +105,7 @@ export function AttackMomentum({
         </div>
       </div>
 
-      {/* SofaScore Graph Canvas Container */}
+      {/* Graph Canvas Container */}
       <div className="relative">
         {/* Tooltip Hover Overlay */}
         {hoveredPoint && (
